@@ -2,6 +2,7 @@
   import { enhance } from '$app/forms';
   import { invalidate } from '$app/navigation';
   import Plus from 'lucide-svelte/icons/plus';
+  import GripVertical from 'lucide-svelte/icons/grip-vertical';
   import Trash2 from 'lucide-svelte/icons/trash-2';
   import Download from 'lucide-svelte/icons/download';
   import Upload from 'lucide-svelte/icons/upload';
@@ -45,6 +46,80 @@
     });
   }
 
+  // ---- drag to reorder (display order only; types behave the same wherever they sit) ----
+  let listEl: HTMLUListElement | undefined = $state();
+  let dragId = $state<string | null>(null);
+  let before: T[] = [];
+
+  function moveTo(id: string, to: number) {
+    const from = types.findIndex((t) => t.id === id);
+    if (from === -1 || from === to) return;
+    const [t] = types.splice(from, 1);
+    types.splice(to, 0, t);
+  }
+
+  function dragStart(e: PointerEvent, t: T) {
+    if (e.button > 0) return;
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    openIcons = null;
+    dragId = t.id;
+    before = types.map((x) => ({ ...x }));
+  }
+
+  function dragMove(e: PointerEvent) {
+    if (!dragId || !listEl) return;
+    const rows = [...listEl.querySelectorAll<HTMLElement>('li[data-id]')];
+    let target = rows.length - 1;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i].getBoundingClientRect();
+      if (e.clientY < r.top + Math.min(r.height / 2, 30)) {
+        target = i;
+        break;
+      }
+    }
+    moveTo(dragId, target);
+  }
+
+  async function persistOrder(prev: T[]) {
+    const changed = types.map((t, i) => ({ t, i })).filter(({ t, i }) => prev.findIndex((p) => p.id === t.id) !== i);
+    if (!changed.length) return;
+    const send = (list: { id: string; sort: number }[]) =>
+      Promise.all(list.map((x) => fetch(`/api/types/${x.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sort: x.sort }) })));
+    // write a sort for every type so the saved order is unambiguous
+    const res = await send(types.map((t, i) => ({ id: t.id, sort: i })));
+    if (res.some((r) => !r.ok)) {
+      types = prev;
+      return toast('Could not save the order', { error: true });
+    }
+    refresh();
+    toast('Order saved', {
+      undo: async () => {
+        types = prev;
+        await send(prev.map((t, i) => ({ id: t.id, sort: i })));
+        refresh();
+      }
+    });
+  }
+
+  async function dragEnd() {
+    if (!dragId) return;
+    dragId = null;
+    await persistOrder(before);
+  }
+
+  async function nudge(e: KeyboardEvent, t: T) {
+    const dir = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    const to = types.findIndex((x) => x.id === t.id) + dir;
+    if (to < 0 || to >= types.length) return;
+    const prev = types.map((x) => ({ ...x }));
+    moveTo(t.id, to);
+    await persistOrder(prev);
+    (e.target as HTMLElement | null)?.focus();
+  }
+
   async function add() {
     const res = await fetch('/api/types', {
       method: 'POST',
@@ -78,12 +153,22 @@
       <h2 class="section-label">Place types</h2>
       <button type="button" class="btn sm" onclick={add}><Plus size={14} />Add type</button>
     </div>
-    <p class="hint">The type sets a place's icon and colour, and whether it gets a printed label by default. It never limits what can go inside what.</p>
-    <ul class="panel list">
+    <p class="hint">Drag the handle to put the types in the order you like; it only changes how they are listed. The type sets a place's icon and colour, and whether it gets a printed label by default. It never limits what can go inside what.</p>
+    <ul class="panel list" bind:this={listEl}>
       {#each types as t (t.id)}
         {@const Icon = iconFor(t.icon)}
-        <li>
+        <li data-id={t.id} class:dragging={dragId === t.id}>
           <div class="row">
+            <button
+              type="button"
+              class="grip"
+              aria-label="Reorder {t.name}. Drag, or use the up and down arrow keys."
+              onpointerdown={(e) => dragStart(e, t)}
+              onpointermove={dragMove}
+              onpointerup={dragEnd}
+              onpointercancel={dragEnd}
+              onkeydown={(e) => nudge(e, t)}><GripVertical size={16} /></button
+            >
             <TypeTile type={{ ...t, sort: 0 }} />
             <label class="sr-only" for="n-{t.id}">Name</label>
             <input id="n-{t.id}" class="field name" value={t.name} onchange={(e) => e.currentTarget.value.trim() && save(t, { name: e.currentTarget.value.trim() })} />
@@ -178,6 +263,10 @@
   .list > li { border-bottom: 1px solid var(--border); }
   .list > li:last-child { border-bottom: 0; }
   .row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; flex-wrap: wrap; }
+  .grip { width: 28px; height: 36px; border: 0; background: transparent; color: var(--text-3); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; }
+  .grip:hover { color: var(--text); }
+  li.dragging { background: var(--surface-hover); }
+  li.dragging .grip { cursor: grabbing; color: var(--accent-text); }
   .name { flex: 1 1 140px; min-width: 120px; height: 36px; }
   .color input { width: 44px; height: 36px; padding: 2px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--surface-2); }
   .lab { display: flex; align-items: center; gap: 6px; }
