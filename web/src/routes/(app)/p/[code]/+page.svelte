@@ -326,6 +326,7 @@
   .banner a { color: var(--warn); font-weight: 500; min-height: 24px; }
   .grow { flex-grow: 1; }
   .actions { display: flex; gap: 8px; }
+  @media (min-width: 900px) { .actions { max-width: 420px; } }
   .sec { display: flex; flex-direction: column; gap: 8px; }
   .sechead { display: flex; align-items: center; justify-content: space-between; }
   .addlink { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-sm); min-height: 24px; }

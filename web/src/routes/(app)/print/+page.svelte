@@ -33,11 +33,11 @@
     </div>
     {#if data.queue.length}
       <div class="actions">
-        <button type="button" class="btn sm" onclick={toggleAll}>{all ? 'Clear selection' : 'Select all'}</button>
+        <button type="button" class="btn sm" class:primary={!selected.length} onclick={toggleAll}>{all ? 'Clear selection' : 'Select all'}</button>
         <a class="btn sm" class:disabled={!selected.length} aria-disabled={!selected.length} href={selected.length ? `/api/labels.zip?codes=${codes}` : undefined} download="labels.zip"
           ><Download size={14} />Download zip</a
         >
-        <a class="btn primary sm" class:disabled={!selected.length} aria-disabled={!selected.length} href={selected.length ? `/print/sheet?codes=${codes}&next=/print` : undefined}
+        <a class="btn sm" class:primary={selected.length > 0} class:disabled={!selected.length} aria-disabled={!selected.length} href={selected.length ? `/print/sheet?codes=${codes}&next=/print` : undefined}
           ><Printer size={14} />Print {selected.length || ''} label{selected.length === 1 ? '' : 's'}</a
         >
       </div>

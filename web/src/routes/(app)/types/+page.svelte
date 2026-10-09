@@ -172,17 +172,18 @@
             <TypeTile type={{ ...t, sort: 0 }} />
             <label class="sr-only" for="n-{t.id}">Name</label>
             <input id="n-{t.id}" class="field name" value={t.name} onchange={(e) => e.currentTarget.value.trim() && save(t, { name: e.currentTarget.value.trim() })} />
+            <div class="ctl">
             <button type="button" class="btn icon" aria-label="Choose icon" aria-expanded={openIcons === t.id} onclick={() => (openIcons = openIcons === t.id ? null : t.id)}><Icon size={16} /></button>
             <label class="color" title="Colour">
-              <span class="sr-only">Colour</span>
+              <span class="cap">Colour</span>
               <input type="color" value={t.color} onchange={(e) => save(t, { color: e.currentTarget.value.toUpperCase() })} />
             </label>
             <label class="lab">
-              <span class="sr-only">Labeled by default</span>
-              <button type="button" class="switch" class:on={t.labeled_default} role="switch" aria-checked={t.labeled_default} aria-label="Labeled by default for {t.name}" onclick={() => save(t, { labeled_default: !t.labeled_default })}><span></span></button>
-              <span class="muted small">Label</span>
+                            <button type="button" class="switch" class:on={t.labeled_default} role="switch" aria-checked={t.labeled_default} aria-label="Labeled by default for {t.name}" onclick={() => save(t, { labeled_default: !t.labeled_default })}><span></span></button>
+              <span class="cap">Labeled</span>
             </label>
             <button type="button" class="btn icon danger" aria-label="Delete {t.name}" disabled={t.used > 0} title={t.used ? `${t.used} places use this type` : 'Delete type'} onclick={() => remove(t)}><Trash2 size={15} /></button>
+            </div>
           </div>
           {#if openIcons === t.id}
             <div class="icons" role="listbox" aria-label="Icons">
@@ -268,6 +269,16 @@
   li.dragging { background: var(--surface-hover); }
   li.dragging .grip { cursor: grabbing; color: var(--accent-text); }
   .name { flex: 1 1 140px; min-width: 120px; height: 36px; }
+  .ctl { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .cap { font-size: var(--fs-sm); color: var(--text-3); }
+  .color { display: flex; align-items: center; gap: 6px; }
+  @media (max-width: 899px) {
+    .grip { width: 44px; height: 44px; }
+    .name { height: 44px; flex: 1 1 0; min-width: 0; }
+    .ctl { flex: 1 1 100%; flex-wrap: nowrap; gap: 8px; padding-left: 44px; justify-content: space-between; }
+    .color .cap { display: none; }
+    .ctl .btn.icon { width: 44px; }
+  }
   .color input { width: 44px; height: 36px; padding: 2px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--surface-2); }
   .lab { display: flex; align-items: center; gap: 6px; }
   .switch { width: 44px; height: 26px; padding: 3px; border: 0; border-radius: 999px; background: #2a2a2f; display: flex; justify-content: flex-start; }

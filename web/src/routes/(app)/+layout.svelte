@@ -11,7 +11,6 @@
   let { data, children } = $props();
 
   const path = $derived(page.url.pathname);
-  const onSearch = $derived(path.startsWith('/search'));
   const currentCode = $derived(path.startsWith('/p/') ? parseInt(path.slice(3), 10) : NaN);
   const typeById = $derived(new Map(data.types.map((t) => [t.id, t])));
 
@@ -77,12 +76,11 @@
   </aside>
 
   <div class="main">
-    {#if !onSearch}
+    {#if path.startsWith('/p/')}
       <header class="topbar">
         <a href="/search" class="fakesearch"
           ><Search size={15} /><span>Search everything</span><span class="mono key">/</span></a
         >
-        <a href="/types" class="gear" aria-label="Settings"><Settings size={18} /></a>
       </header>
     {/if}
     <div class="content">
@@ -96,6 +94,7 @@
     <a href="/print" class:on={nav('/print')} class="rel"
       ><Printer size={20} />Print{#if data.queueCount}<span class="badge">{data.queueCount}</span>{/if}</a
     >
+    <a href="/types" class:on={nav('/types')}><Settings size={20} />Settings</a>
   </nav>
 </div>
 
@@ -121,7 +120,6 @@
   }
   .fakesearch span:nth-child(2) { flex-grow: 1; }
   .key { font-size: var(--fs-xs); padding: 1px 6px; border: 1px solid #2a2a2f; border-radius: 4px; }
-  .gear { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--text-3); border-radius: var(--r-lg); }
   .content { width: 100%; max-width: 720px; margin: 0 auto; flex-grow: 1; }
 
   .bottombar {
@@ -129,7 +127,7 @@
     padding: 6px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--border); z-index: 20;
   }
   .bottombar a {
-    display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 64px; min-height: 44px; padding: 6px 0;
+    display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 56px; min-height: 44px; padding: 6px 0;
     color: var(--text-3); font-size: var(--fs-xs);
   }
   .bottombar a.on { color: var(--text); font-weight: 500; }

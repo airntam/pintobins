@@ -436,10 +436,11 @@
   .txt { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .nm { font-weight: 500; overflow-wrap: anywhere; }
   .thumb { width: 40px; height: 40px; border-radius: var(--r-md); overflow: hidden; flex-shrink: 0; background: var(--surface-2); }
-  .edit { margin-left: auto; color: var(--text-3); display: flex; padding: 0 4px; }
+  .edit { margin-left: auto; color: var(--text-3); display: none; padding: 0 4px; }
+  @media (min-width: 900px) { .edit { display: flex; } }
   .view:hover .edit { color: var(--text); }
   .adddetails { align-self: flex-start; padding: 1px 8px; border-radius: var(--r-sm); border: 1px dashed var(--chip-border); font-size: var(--fs-sm); color: var(--text-3); }
-  .grip { width: 32px; border: 0; background: transparent; color: var(--text-3); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; }
+  .grip { width: 40px; border: 0; background: transparent; color: var(--text-3); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; }
   .grip:hover { color: var(--text-2); }
   li.dragging { background: var(--surface-hover); }
   li.dragging .grip { cursor: grabbing; color: var(--accent-text); }

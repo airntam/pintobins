@@ -35,7 +35,8 @@ Choices made where the brief was silent or where reality differed. Newest concer
 - `Create another` keeps the same parent; with `Print label` ticked it prints first and returns to the form (`next=` on the print sheet).
 - The print queue starts with nothing selected ("Select all" is one click) so nothing is printed by accident.
 - CSV import always creates new places with new codes (codes in the file are only used to link rows); missing types are created. Items in a file may also point at an existing place code.
-- Text colour `--text-4` (#62666D) is below 4.5:1 on the background, so it's only used for decorative things (the empty pin icon, separators); readable secondary text uses `--text-3`.
+- `--text-4` was lightened from the brief's #62666D (about 3.3:1) to #7D828B (about 5:1) so every text and icon use meets the 4.5:1 rule. Disabled buttons use a dim but readable style instead of reduced opacity.
+- Phone navigation has four tabs (Browse, Search, Print, Settings); the top search bar appears only on place pages, as in the mockup. The New place footer is part of the page flow so it never covers the Items field.
 - Accounts: sign-up is disabled (`users` create rule is admin-only); one user comes from `ADMIN_EMAIL`/`ADMIN_PASSWORD` on first boot. Sessions are 30 days, refreshed when older than a day.
 
 ## Deployment

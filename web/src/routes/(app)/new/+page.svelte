@@ -185,11 +185,11 @@
   .nm { font-weight: 500; }
   .error { color: var(--remove); font-size: var(--fs-md); }
   footer {
-    position: sticky; bottom: calc(68px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px;
+    display: flex; flex-direction: column; gap: 10px;
     padding: 12px 16px 16px; border-top: 1px solid var(--border); background: var(--bg);
   }
   .checks { display: flex; align-items: center; gap: 16px; font-size: var(--fs-md); color: var(--text-2); }
   .checks label { display: flex; align-items: center; gap: 8px; min-height: 32px; }
   .checks input { width: 16px; height: 16px; accent-color: var(--accent); }
-  @media (min-width: 900px) { footer { bottom: 0; } form { min-height: 100dvh; } .body { max-width: 560px; } }
+  @media (min-width: 900px) { form { min-height: 100dvh; } .body, footer { max-width: 560px; width: 100%; } header { max-width: 560px; } footer { border-top: 0; } }
 </style>
