@@ -1,22 +1,35 @@
 import { redirect, type Handle } from '@sveltejs/kit';
-import { COOKIE, newPb, setAuthCookie, SESSION_SECONDS, tokenTtl } from '$lib/server/pb';
+import { COOKIE, newPb, setAuthCookie } from '$lib/server/pb';
 
 const PUBLIC = ['/login', '/health'];
+
+// A token can look fine (not expired) yet be rejected by PocketBase, e.g. after a
+// password change or a database reset; PocketBase then answers lists with empty
+// results instead of errors. So check it against PocketBase, at most once a minute.
+const VERIFY_EVERY_MS = 60_000;
+const verifiedAt = new Map<string, number>();
 
 export const handle: Handle = async ({ event, resolve }) => {
   const pb = newPb();
   pb.authStore.loadFromCookie(event.request.headers.get('cookie') ?? '', COOKIE);
-  let refreshed = false;
 
   if (pb.authStore.isValid) {
-    // Sliding 30-day session: refresh once the token is a day old.
-    if (tokenTtl(pb.authStore.token) < SESSION_SECONDS - 24 * 60 * 60) {
+    const token = pb.authStore.token;
+    if (Date.now() - (verifiedAt.get(token) ?? 0) > VERIFY_EVERY_MS) {
       try {
+        // also slides the 30-day session forward
         await pb.collection('users').authRefresh();
-        refreshed = true;
         setAuthCookie(event.cookies, pb);
-      } catch {
-        pb.authStore.clear();
+        if (verifiedAt.size > 50) verifiedAt.clear();
+        verifiedAt.set(pb.authStore.token, Date.now());
+      } catch (e: any) {
+        // only an explicit rejection means "logged out"; if PocketBase is merely down, keep the session
+        if (e?.status === 400 || e?.status === 401 || e?.status === 403 || e?.status === 404) {
+          pb.authStore.clear();
+          event.cookies.delete(COOKIE, { path: '/' });
+        } else {
+          verifiedAt.set(token, Date.now());
+        }
       }
     }
   }
@@ -34,6 +47,5 @@ export const handle: Handle = async ({ event, resolve }) => {
     redirect(303, `/login?next=${encodeURIComponent(next)}`);
   }
 
-  const response = await resolve(event);
-  return response;
+  return resolve(event);
 };

@@ -1,0 +1,8 @@
+# Temporarily publish the PocketBase admin UI on the server's loopback only:
+#   docker compose -f docker-compose.yml -f docker-compose.admin.yml up -d pocketbase
+# then from your PC:  ssh -L 8090:127.0.0.1:8090 you@server   and open http://localhost:8090/_/
+# Remove the override again afterwards (re-run `up -d` without it).
+services:
+  pocketbase:
+    ports:
+      - "127.0.0.1:8090:8090"

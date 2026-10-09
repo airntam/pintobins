@@ -312,9 +312,7 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
     }
   }
 
-  const before = p.d.length;
   built!.paint(contentTop);
-  void before;
   const bodyH = built!.height;
   if (dropped.size) {
     const t = oneLine(p, [{ text: moreText(dropped.size), face: 'regular' }], SIZE.more, leftW);

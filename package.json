@@ -10,7 +10,9 @@
     "test": "npm --prefix web test",
     "check": "npm --prefix web run check",
     "pb:download": "node scripts/pb-download.mjs",
-    "pb": "node scripts/pb.mjs"
+    "pb": "node scripts/pb.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "e2e": "node scripts/e2e.mjs"
   },
   "devDependencies": {
     "adm-zip": "^0.5.16",

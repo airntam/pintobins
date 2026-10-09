@@ -1,0 +1,68 @@
+# Bins: production stack. All configuration comes from environment variables
+# (set them in Portainer's stack editor, Coolify's UI, or a local .env).
+name: bins
+
+services:
+  pocketbase:
+    build: ./pocketbase
+    restart: unless-stopped
+    environment:
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD}
+    volumes:
+      - pb_data:/pb_data
+    networks: [internal]
+    # no published ports: only `web` talks to PocketBase
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8090/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    environment:
+      PB_URL: http://pocketbase:8090
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set PUBLIC_BASE_URL}
+      # SvelteKit's CSRF check compares against this origin
+      ORIGIN: ${PUBLIC_BASE_URL}
+      PORT: "3000"
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Cloudflare Tunnel (Portainer): enable with `--profile tunnel`.
+  # Coolify has its own proxy, so leave this profile off there.
+  cloudflared:
+    image: cloudflare/cloudflared:2025.8.1
+    profiles: [tunnel]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --metrics 0.0.0.0:2000 run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      web:
+        condition: service_healthy
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:2000", "ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  internal:
+
+volumes:
+  pb_data:

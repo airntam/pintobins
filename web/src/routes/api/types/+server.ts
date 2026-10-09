@@ -1,5 +1,5 @@
 import { guard, json, pick } from '$lib/server/api';
-import { invalidate } from '$lib/server/data';
+import { invalidate, loadCtx } from '$lib/server/data';
 
 export async function POST({ request, locals }) {
   return guard(async () => {
@@ -11,4 +11,9 @@ export async function POST({ request, locals }) {
     invalidate();
     return json({ id: rec.id }, 201);
   });
+}
+
+export async function GET({ locals }) {
+  const ctx = await loadCtx(locals.pb);
+  return json(ctx.types);
 }

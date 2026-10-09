@@ -1,0 +1,47 @@
+# Decisions
+
+Choices made where the brief was silent or where reality differed. Newest concerns last within each section.
+
+## Stack versions
+
+- **PocketBase v0.40.5** (latest at build time), pinned in `scripts/pb-download.mjs` and `pocketbase/Dockerfile`. In this version the JS hook for startup is `onBootstrap` (there is no `onServe`), so the first-user creation runs after `e.next()` in `onBootstrap`.
+- **SvelteKit 2 / Vite 7**, not SvelteKit 3. `npm` resolves `@sveltejs/kit@latest` to v3, which removes `$lib`, `$env/*` and `svelte.config.js`. The brief's stack (adapter-node, Svelte 5) is fully met by 2.x, so the app is pinned to `^2`.
+- **No `bits-ui`.** The only overlay needed was the place picker, built on the native `<dialog>` element (focus trap, Esc, backdrop for free). Fewer dependencies.
+- Vite's dependency cache is moved to the OS temp dir (`web/vite.config.ts`) because Dropbox locks `node_modules/.vite` on Windows.
+
+## Data and hooks
+
+- PocketBase collections created through JS don't get `created`/`updated`, so the migration adds explicit autodate fields.
+- `labeled` defaults from the type in an `onRecordCreateRequest` hook, only when the request doesn't send it. The UI always sends it (it has the switch).
+- Codes are immutable (an update that changes `code` is silently reverted) and a place with children can't be deleted (move them first).
+- Deleting a place cascades to its items (relation `cascadeDelete`).
+- `search_text` is `normalize(name + notes)` for places and `normalize(name + details)` for items. The normalisation exists twice (`pb_hooks/lib.js`, `web/src/lib/search.ts`) and is unit-tested on the TS side. Search uses PocketBase's `~` filter; FTS5 was not needed.
+- Photos are served by a SvelteKit proxy (`/img/...`) that requires the session; PocketBase itself is never exposed. Thumbnails: `96x96` (cards, items) and `400x300` (place header).
+- Items store `sort`; new items go to the end. There is no drag-to-reorder yet (not in the brief).
+
+## Labels
+
+- **Text is converted to outlines** (opentype.js, bundled Geist TTFs). The SVG is then identical in a browser `<img>`, in print and when rasterised, with no fonts needed in the container or the browser, and measurement for overflow uses the exact same metrics. `▸` isn't in Geist, so it's drawn as a triangle.
+- **Path on the label** leaves out the outermost ancestor once there are at least two ("Upstairs Office › Silver Shelf", not "Home › …"), matching the mockup. The place page breadcrumb shows the full path.
+- **Overflow order:** full wrapped details → details cut to one line → names only → drop entries from the end (child places go before items, pinned items never) with "+ N more · scan for full list".
+- **QR:** error correction M, module size is a whole number of 203 dpi pixels (5 px for a 29-module code, ≈ 18 mm square) so it stays crisp when thresholded. Larger would need a shorter URL.
+- **PNG** is the same layout rendered with `width=640 height=559` (80 mm × 70 mm at 203 dpi is 639.4 × 559.4 px, so the raster is non-uniformly scaled by well under 1%), thresholded to pure black and white, 8-bit greyscale.
+- **Snapshot** (`label_snapshot`) is the ordered text lines: name, path, item lines (`name — details`), child lines (`▸ Name #0043`). Change detection is a multiset diff, so re-ordering items isn't a change; renaming an item is one removed + one added line (2 changes).
+- Marking printed happens in a separate step ("Mark as printed") because the browser can't tell whether the printer actually printed.
+
+## App behaviour
+
+- Moving a place also offers "Top level". The picker hides the place and its descendants; the server hook is the real guard.
+- `Create another` keeps the same parent; with `Print label` ticked it prints first and returns to the form (`next=` on the print sheet).
+- The print queue starts with nothing selected ("Select all" is one click) so nothing is printed by accident.
+- CSV import always creates new places with new codes (codes in the file are only used to link rows); missing types are created. Items in a file may also point at an existing place code.
+- Text colour `--text-4` (#62666D) is below 4.5:1 on the background, so it's only used for decorative things (the empty pin icon, separators); readable secondary text uses `--text-3`.
+- Accounts: sign-up is disabled (`users` create rule is admin-only); one user comes from `ADMIN_EMAIL`/`ADMIN_PASSWORD` on first boot. Sessions are 30 days, refreshed when older than a day.
+
+## Deployment
+
+- `web` uses `node:22-slim` (glibc) rather than Alpine so `@resvg/resvg-js` runs without extra work.
+- `ORIGIN` is set to `PUBLIC_BASE_URL` in compose, which SvelteKit needs behind a TLS-terminating proxy or tunnel; the consequence is that form posts must come from that origin.
+- The compose project is named `bins`, so the data volume is `bins_pb_data` when run from the CLI (Portainer prefixes the stack name instead).
+- `COMPOSE_PROFILES=tunnel` is how Portainer turns on `cloudflared`; Coolify leaves it off.
+- A small `docker-compose.admin.yml` publishes the PocketBase admin UI on the server's loopback only, for password resets.

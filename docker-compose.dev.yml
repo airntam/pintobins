@@ -1,0 +1,23 @@
+# Local development on Docker Desktop:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+# Open http://localhost:5173 (app) and http://localhost:8090/_/ (PocketBase admin).
+# Hooks and migrations are mounted from the repo; restart the pocketbase service to pick up edits.
+# For hot reload while changing the UI, use the plain-Node path instead (npm run pb + npm run dev).
+services:
+  pocketbase:
+    environment:
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-dev@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-dev-password-123}
+    ports:
+      - "8090:8090"
+    volumes:
+      - pb_data:/pb_data
+      - ./pocketbase/pb_hooks:/pb_hooks:ro
+      - ./pocketbase/pb_migrations:/pb_migrations:ro
+
+  web:
+    environment:
+      PUBLIC_BASE_URL: http://localhost:5173
+      ORIGIN: http://localhost:5173
+    ports: !override
+      - "5173:3000"

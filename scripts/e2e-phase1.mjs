@@ -42,15 +42,24 @@ export async function run() {
   ok(self.status === 400, 'moving a place into itself is refused');
 
   const page = await (await web(`/p/${screws.code}`)).text();
-  ok(page.includes('Assorted metric screws') && page.includes('#0005'), 'place page renders with code');
-  ok((await web('/p/0005')).status === 307, '/p/0005 redirects to the canonical URL');
+  ok(page.includes('Assorted metric screws') && page.includes('#' + String(screws.code).padStart(4, '0')), 'place page renders with code');
+  ok((await web('/p/' + String(screws.code).padStart(4, '0'))).status === 307, 'zero-padded /p/000N redirects to the canonical URL');
   const browse = await (await web('/')).text();
   ok(browse.includes('Home'), 'browse lists the top-level place');
 
   const anon = await fetch(WEB_URL() + '/p/1', { redirect: 'manual' });
   ok(anon.status === 303 && anon.headers.get('location').startsWith('/login'), 'anonymous requests go to /login');
 
-  globalThis.__e2e = { home, office, shelf, solder, screws, types, token };
+  // an unexpired token that PocketBase rejects (bad signature) must not show an empty app
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const fake = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ id: 'nobody', type: 'auth', collectionId: '_pb_users_auth_', exp: 4102444800 })}.badsig`;
+  const stale = await fetch(WEB_URL() + '/', {
+    redirect: 'manual',
+    headers: { cookie: 'pb_auth=' + encodeURIComponent(JSON.stringify({ token: fake, record: { id: 'nobody', collectionId: '_pb_users_auth_' } })) }
+  });
+  ok(stale.status === 303 && stale.headers.get('location').startsWith('/login'), 'a token PocketBase rejects sends you to /login');
+
+  globalThis.__e2e ={ home, office, shelf, solder, screws, types, token };
 }
 
 const WEB_URL = () => process.env.WEB_URL || 'http://localhost:5173';
