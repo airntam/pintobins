@@ -1,0 +1,8 @@
+.env
+node_modules/
+pb_data/
+.pb/
+.svelte-kit/
+build/
+*.log
+.DS_Store

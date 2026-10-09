@@ -1,0 +1,19 @@
+{
+  "name": "bins",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hosted home inventory with printable QR labels",
+  "scripts": {
+    "setup": "npm install && npm --prefix web install",
+    "dev": "cross-env PUBLIC_BASE_URL=http://localhost:5173 PB_URL=http://127.0.0.1:8090 npm --prefix web run dev",
+    "build": "npm --prefix web run build",
+    "test": "npm --prefix web test",
+    "check": "npm --prefix web run check",
+    "pb:download": "node scripts/pb-download.mjs",
+    "pb": "node scripts/pb.mjs"
+  },
+  "devDependencies": {
+    "adm-zip": "^0.5.16",
+    "cross-env": "^7.0.3"
+  }
+}

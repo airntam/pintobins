@@ -1,0 +1,79 @@
+@import './tokens.css';
+
+@font-face { font-family: 'Geist'; font-weight: 400; font-display: swap; src: url('/fonts/Geist-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Geist'; font-weight: 500; font-display: swap; src: url('/fonts/Geist-Medium.ttf') format('truetype'); }
+@font-face { font-family: 'Geist'; font-weight: 600; font-display: swap; src: url('/fonts/Geist-SemiBold.ttf') format('truetype'); }
+@font-face { font-family: 'Geist'; font-weight: 700; font-display: swap; src: url('/fonts/Geist-Bold.ttf') format('truetype'); }
+@font-face { font-family: 'Geist Mono'; font-weight: 400; font-display: swap; src: url('/fonts/GeistMono-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Geist Mono'; font-weight: 600; font-display: swap; src: url('/fonts/GeistMono-SemiBold.ttf') format('truetype'); }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { color-scheme: dark; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p { margin: 0; }
+a { color: var(--accent-text); text-decoration: none; }
+a:hover { color: #C4C9FA; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+ul { list-style: none; margin: 0; padding: 0; }
+.mono { font-family: var(--mono); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(94, 106, 210, .18); border-color: var(--accent) !important; }
+
+/* section label: 12px grey sentence case */
+.section-label { font-size: var(--fs-sm); font-weight: 500; color: var(--text-3); }
+.muted { color: var(--text-3); }
+
+/* buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 44px; padding: 0 16px; border-radius: var(--r-lg);
+  border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-2);
+  font-size: var(--fs-base); font-weight: 500; text-decoration: none; white-space: nowrap;
+}
+.btn:hover { background: var(--surface-hover); color: var(--text); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: #6C77DB; color: #fff; }
+.btn.danger { color: var(--remove); }
+.btn.icon { width: 44px; padding: 0; }
+.btn.sm { height: 32px; padding: 0 12px; font-size: var(--fs-md); border-radius: var(--r-md); }
+.btn:disabled { opacity: .5; cursor: default; }
+@media (min-width: 900px) { .btn { height: 36px; } .btn.icon { width: 36px; } .btn.sm { height: 28px; } }
+
+/* chips */
+.chip {
+  display: inline-block; padding: 1px 8px; border-radius: var(--r-sm);
+  border: 1px solid var(--chip-border); background: var(--chip-bg);
+  font-size: var(--fs-sm); color: var(--text-2);
+}
+.chip.hit { border-color: var(--accent-border); background: var(--accent-soft); color: #D3D7FB; font-weight: 500; }
+.chip.more { color: var(--text-3); }
+
+/* cards / panels */
+.panel { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); }
+.card {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-height: 52px;
+  border-radius: var(--r-lg); background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text); text-decoration: none;
+}
+.card:hover { background: var(--surface-hover); color: var(--text); }
+.card .grow { flex-grow: 1; min-width: 0; }
+.card .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.field {
+  width: 100%; height: 44px; padding: 0 12px; border-radius: var(--r-lg);
+  border: 1px solid var(--border-strong); background: var(--surface-2); outline: none;
+}
+textarea.field { height: auto; padding: 10px 12px; line-height: 1.5; resize: vertical; }
+
+.empty { padding: 32px 16px; text-align: center; color: var(--text-3); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.empty .title { color: var(--text-2); font-weight: 500; }
