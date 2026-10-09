@@ -2,6 +2,7 @@
   import { tick } from 'svelte';
   import Plus from 'lucide-svelte/icons/plus';
   import Pin from 'lucide-svelte/icons/pin';
+  import Pencil from 'lucide-svelte/icons/pencil';
   import GripVertical from 'lucide-svelte/icons/grip-vertical';
   import Trash2 from 'lucide-svelte/icons/trash-2';
   import Camera from 'lucide-svelte/icons/camera';
@@ -363,8 +364,13 @@
               {/if}
               <span class="txt">
                 <span class="nm">{item.name}</span>
-                <Chips chips={splitDetails(item.details)} />
+                {#if item.details.trim()}
+                  <Chips chips={splitDetails(item.details)} />
+                {:else}
+                  <span class="adddetails">+ Add details</span>
+                {/if}
               </span>
+              <span class="edit" aria-hidden="true"><Pencil size={14} /></span>
             </button>
             <button
               type="button"
@@ -410,7 +416,7 @@
     </li>
   </ul>
   {#if !items.length}
-    <p class="hint">Nothing here yet. Type a name above and press Enter. Tap an item afterwards to add details.</p>
+    <p class="hint">Nothing here yet. Type a name above and press Enter. Tap an item afterwards to edit its name and add details.</p>
   {/if}
 </section>
 
@@ -430,6 +436,9 @@
   .txt { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .nm { font-weight: 500; overflow-wrap: anywhere; }
   .thumb { width: 40px; height: 40px; border-radius: var(--r-md); overflow: hidden; flex-shrink: 0; background: var(--surface-2); }
+  .edit { margin-left: auto; color: var(--text-3); display: flex; padding: 0 4px; }
+  .view:hover .edit { color: var(--text); }
+  .adddetails { align-self: flex-start; padding: 1px 8px; border-radius: var(--r-sm); border: 1px dashed var(--chip-border); font-size: var(--fs-sm); color: var(--text-3); }
   .grip { width: 32px; border: 0; background: transparent; color: var(--text-3); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; }
   .grip:hover { color: var(--text-2); }
   li.dragging { background: var(--surface-hover); }
