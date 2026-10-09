@@ -196,8 +196,8 @@
       {:else}
         <button type="button" class="btn primary grow" onclick={toggleLabeled}><Printer size={16} />Turn on label</button>
       {/if}
-      <button type="button" class="btn icon" aria-label="Move" title="Move" onclick={() => (picker = 'move-place')}
-        ><ArrowRight size={16} /></button
+      <button type="button" class="btn" title="Move this place and everything inside it" onclick={() => (picker = 'move-place')}
+        ><ArrowRight size={16} />Move</button
       >
       <button type="button" class="btn icon" aria-label={place.photo ? 'Change photo' : 'Add photo'} title="Add photo" onclick={() => photoInput?.click()}
         ><Camera size={16} /></button
