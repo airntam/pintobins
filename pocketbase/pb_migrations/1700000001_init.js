@@ -114,7 +114,7 @@ migrate(
     const seed = [
       ['Location', 'house', '#4CB782', false],
       ['Room', 'door-closed', '#E59A5B', false],
-      ['Shelf', 'library', '#5BA4E6', false],
+      ['Shelf', 'shelf', '#5BA4E6', false],
       ['Bin', 'archive', '#A28BF5', true]
     ];
     seed.forEach((s, i) => {

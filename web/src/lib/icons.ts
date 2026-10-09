@@ -32,6 +32,16 @@ import BackpackIcon from 'lucide-svelte/icons/backpack';
 import LuggageIcon from 'lucide-svelte/icons/luggage';
 import InboxIcon from 'lucide-svelte/icons/inbox';
 import ToolboxIcon from 'lucide-svelte/icons/toolbox';
+import Rows3Icon from 'lucide-svelte/icons/rows-3';
+import Columns2Icon from 'lucide-svelte/icons/columns-2';
+import VaultIcon from 'lucide-svelte/icons/vault';
+import ServerIcon from 'lucide-svelte/icons/server';
+import FolderArchiveIcon from 'lucide-svelte/icons/folder-archive';
+import ShoppingBasketIcon from 'lucide-svelte/icons/shopping-basket';
+import ShelfIcon from './icons/Shelf.svelte';
+import DrawerIcon from './icons/Drawer.svelte';
+import CabinetIcon from './icons/Cabinet.svelte';
+import ToteIcon from './icons/Tote.svelte';
 
 export const ICONS: Record<string, any> = {
   'house': HouseIcon,
@@ -67,6 +77,16 @@ export const ICONS: Record<string, any> = {
   'luggage': LuggageIcon,
   'inbox': InboxIcon,
   'toolbox': ToolboxIcon,
+  'rows-3': Rows3Icon,
+  'columns-2': Columns2Icon,
+  'vault': VaultIcon,
+  'server': ServerIcon,
+  'folder-archive': FolderArchiveIcon,
+  'shopping-basket': ShoppingBasketIcon,
+  'shelf': ShelfIcon,
+  'drawer': DrawerIcon,
+  'cabinet': CabinetIcon,
+  'tote': ToteIcon,
 };
 
 export const ICON_NAMES = Object.keys(ICONS);
