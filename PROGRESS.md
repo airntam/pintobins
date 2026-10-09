@@ -25,6 +25,6 @@
 ## Open questions for Aaron
 
 1. Should the label path always start at the top-level place ("Home › …") rather than dropping it? Currently dropped, as in the mockup.
-2. Do you want to reorder items by dragging? Items have a `sort` field already.
+2. (Done) Items can be reordered by dragging the handle (or arrow keys on it).
 3. Printing: the Phomemo driver's paper size has to be set to 80 × 70 mm once in the browser's print dialog; if it keeps defaulting to something else, we can try a different `@page` approach after the first real print.
 4. Any other label contents (e.g. notes, date printed)?

@@ -17,7 +17,7 @@ Choices made where the brief was silent or where reality differed. Newest concer
 - Deleting a place cascades to its items (relation `cascadeDelete`).
 - `search_text` is `normalize(name + notes)` for places and `normalize(name + details)` for items. The normalisation exists twice (`pb_hooks/lib.js`, `web/src/lib/search.ts`) and is unit-tested on the TS side. Search uses PocketBase's `~` filter; FTS5 was not needed.
 - Photos are served by a SvelteKit proxy (`/img/...`) that requires the session; PocketBase itself is never exposed. Thumbnails: `96x96` (cards, items) and `400x300` (place header).
-- Items store `sort`; new items go to the end. There is no drag-to-reorder yet (not in the brief).
+- Items store `sort`; new items go to the end. Reorder by dragging the grip (pointer events, works with touch) or with the arrow keys on it; every changed `sort` is saved with an Undo toast.
 
 ## Labels
 

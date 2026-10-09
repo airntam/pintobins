@@ -2,6 +2,7 @@
   import { tick } from 'svelte';
   import Plus from 'lucide-svelte/icons/plus';
   import Pin from 'lucide-svelte/icons/pin';
+  import GripVertical from 'lucide-svelte/icons/grip-vertical';
   import Trash2 from 'lucide-svelte/icons/trash-2';
   import Camera from 'lucide-svelte/icons/camera';
   import X from 'lucide-svelte/icons/x';
@@ -44,6 +45,86 @@
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error ?? 'Something went wrong');
     return data;
+  }
+
+  // ---- drag to reorder (pointer events, so it works with touch and mouse) ----
+  let listEl: HTMLUListElement | undefined = $state();
+  let dragId = $state<string | null>(null);
+  let orderBefore: ClientItem[] = [];
+
+  function moveTo(id: string, to: number) {
+    const from = items.findIndex((i) => i.id === id);
+    if (from === -1 || from === to) return;
+    const [it] = items.splice(from, 1);
+    items.splice(to, 0, it);
+  }
+
+  function dragStart(e: PointerEvent, item: ClientItem) {
+    if (e.button > 0) return;
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    editingId = null;
+    dragId = item.id;
+    orderBefore = items.map((i) => ({ ...i }));
+  }
+
+  function dragMove(e: PointerEvent) {
+    if (!dragId || !listEl) return;
+    const rows = [...listEl.querySelectorAll<HTMLElement>('li[data-id]')];
+    let target = rows.length - 1;
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i].getBoundingClientRect();
+      if (e.clientY < r.top + r.height / 2) {
+        target = i;
+        break;
+      }
+    }
+    moveTo(dragId, target);
+  }
+
+  async function persistOrder(before: ClientItem[]) {
+    const changed = items.map((it, i) => ({ it, i })).filter(({ it, i }) => it.sort !== i);
+    if (!changed.length) return;
+    const prev = new Map(before.map((b) => [b.id, b.sort]));
+    try {
+      await Promise.all(changed.map(({ it, i }) => ((it.sort = i), api('PATCH', `/api/items/${it.id}`, { sort: i }))));
+      onchange();
+      toast('Order saved', {
+        undo: async () => {
+          try {
+            const ids = new Map(items.map((x) => [x.id, x]));
+            for (const [id, sort] of prev) if (ids.has(id)) ids.get(id)!.sort = sort;
+            items.sort((a, b) => a.sort - b.sort);
+            await Promise.all(changed.map(({ it }) => api('PATCH', `/api/items/${it.id}`, { sort: prev.get(it.id) ?? 0 })));
+            onchange();
+          } catch (e) {
+            fail(e);
+          }
+        }
+      });
+    } catch (e) {
+      items = before;
+      fail(e);
+    }
+  }
+
+  async function dragEnd() {
+    if (!dragId) return;
+    dragId = null;
+    await persistOrder(orderBefore);
+  }
+
+  async function nudge(e: KeyboardEvent, item: ClientItem) {
+    const dir = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+    if (!dir) return;
+    e.preventDefault();
+    const from = items.findIndex((i) => i.id === item.id);
+    const to = from + dir;
+    if (to < 0 || to >= items.length) return;
+    const before = items.map((i) => ({ ...i }));
+    moveTo(item.id, to);
+    await persistOrder(before);
+    (e.target as HTMLElement | null)?.focus();
   }
 
   const fail = (e: unknown) => toast(e instanceof Error ? e.message : 'Something went wrong', { error: true });
@@ -219,9 +300,9 @@
     <h2 class="section-label">Items</h2>
     <span class="count">{items.length}</span>
   </div>
-  <ul class="panel list">
+  <ul class="panel list" bind:this={listEl}>
     {#each items as item (item.id)}
-      <li>
+      <li data-id={item.id} class:dragging={dragId === item.id}>
         {#if editingId === item.id}
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <div class="row editing" onfocusout={rowFocusOut} role="group" aria-label="Edit {item.name}">
@@ -287,6 +368,16 @@
             </button>
             <button
               type="button"
+              class="grip"
+              aria-label="Reorder {item.name}. Drag, or use the up and down arrow keys."
+              onpointerdown={(e) => dragStart(e, item)}
+              onpointermove={dragMove}
+              onpointerup={dragEnd}
+              onpointercancel={dragEnd}
+              onkeydown={(e) => nudge(e, item)}><GripVertical size={16} /></button
+            >
+            <button
+              type="button"
               class="pin"
               class:on={item.pinned}
               aria-pressed={item.pinned}
@@ -339,6 +430,10 @@
   .txt { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .nm { font-weight: 500; overflow-wrap: anywhere; }
   .thumb { width: 40px; height: 40px; border-radius: var(--r-md); overflow: hidden; flex-shrink: 0; background: var(--surface-2); }
+  .grip { width: 32px; border: 0; background: transparent; color: var(--text-3); display: flex; align-items: center; justify-content: center; cursor: grab; touch-action: none; }
+  .grip:hover { color: var(--text-2); }
+  li.dragging { background: var(--surface-hover); }
+  li.dragging .grip { cursor: grabbing; color: var(--accent-text); }
   .pin { width: 44px; border: 0; background: transparent; color: var(--text-4); display: flex; align-items: center; justify-content: center; }
   .pin:hover { color: var(--text-2); }
   .pin.on { color: #7C86E8; }
