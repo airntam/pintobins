@@ -253,7 +253,7 @@
     <section class="sec">
       <h2 class="section-label">Label</h2>
       <div class="preview panel">
-        <img src="/api/label/{place.code}.svg?v={data.label.version}" alt="Label for {pad4(place.code)}" width="640" height="560" />
+        <img src="/api/label/{place.code}.svg?v={data.label.version}" alt="Label for {pad4(place.code)}" width="560" height="640" />
       </div>
       <div class="dl">
         <a class="btn sm" href="/api/label/{place.code}.svg?v={data.label.version}" download="label-{pad4(place.code)}.svg"><Download size={14} />Download SVG</a>

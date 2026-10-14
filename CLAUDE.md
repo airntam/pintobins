@@ -1,6 +1,6 @@
 # Bins — build brief
 
-A self-hosted home inventory app. Every **place** (a location, room, shelf or bin, nested to any depth) gets a permanent code like `#0042`. Labeled places get a printed 80 × 70 mm label listing their contents, plus a QR code that opens the place's page, where you can view and edit it. One user (Aaron). Dark UI only, in a Linear-inspired style.
+A self-hosted home inventory app. Every **place** (a location, room, shelf or bin, nested to any depth) gets a permanent code like `#0042`. Labeled places get a printed 70 × 80 mm label listing their contents, plus a QR code that opens the place's page, where you can view and edit it. One user (Aaron). Dark UI only, in a Linear-inspired style.
 
 - Spec (source of truth for behavior): https://claude.ai/code/artifact/8de865a7-44f7-4b1a-bb74-842b57df30cc
 - UI mockups (source of truth for look): https://claude.ai/artifact/VJjB33v3MDS2yaU7PVqTUg
@@ -92,13 +92,13 @@ Hooks in `pb_hooks/`:
 - **Print queue (desktop-first):** a sidebar with nav and the place tree. The list shows labeled places whose label has never been printed or has changed since. Each row has a checkbox, a type tile, the code, the name, a Changed or New status dot, its path, and the changes in monospace (green lines for additions, red struck-through lines for removals), plus a label thumbnail. Actions: Select all, Download zip, Print N labels.
 - **Phone navigation:** a bottom bar with Browse, Search and Print (with a count badge). On desktop, a left sidebar.
 
-## Label (80 mm wide × 70 mm tall, landscape, pure black on white)
+## Label (70 mm wide × 80 mm tall, portrait, pure black on white)
 
 - **Left column:** the name in bold (largest text), the location path in small text, a 0.4 mm rule, then the contents. Each item is a bold name followed by " — details". Child places are listed last, after a dashed rule, as `▸ Name #0043`.
 - **Right column:** a QR code about 20 mm square holding `PUBLIC_BASE_URL/p/<code>`, with `#0042` in bold monospace under it.
 - **Overflow:** measure the space and drop details first, then items, then end with "+ N more · scan for full list". Pinned items are always kept.
-- **Rendering:** one SVG renderer, `src/lib/label/render.ts`, produces the SVG at mm units. The PNG is that SVG rasterized at 203 dpi (640 × 559 px). The preview, print and downloads all use the same renderer.
-- **Print sheet:** `@page { size: 80mm 70mm; margin: 0 }`, one label per page as an `<img>` of the SVG. It calls `window.print()` automatically. After printing, the user confirms with "Mark as printed", which saves `label_snapshot` and `printed_at`.
+- **Rendering:** one SVG renderer, `src/lib/label/render.ts`, produces the SVG at mm units. The PNG is that SVG rasterized at 203 dpi (559 × 640 px). The preview, print and downloads all use the same renderer.
+- **Print sheet:** `@page { size: 70mm 80mm; margin: 0 }`, one label per page as an `<img>` of the SVG. It calls `window.print()` automatically. After printing, the user confirms with "Mark as printed", which saves `label_snapshot` and `printed_at`.
 - **Label text** (used for the snapshot and the change list): an ordered list of lines, `name`, `path`, then each item line, then each child line.
 
 ## Design tokens (`src/lib/styles/tokens.css`)
@@ -135,7 +135,7 @@ UI rules:
 1. **Core:** the collections and migrations, the hooks (codes, loop check, search_text, seed types and user), login, browse, the place page with in-place item editing, create place with quick entry, and search.
    *Checks:* create Home › Upstairs Office › Silver Shelf › Soldering Supplies › Assorted metric screws through the UI, then add items via quick entry. Searching "m8x10" must find "M8×10". Moving a place into its own child must be refused. Codes must increase by 1.
 2. **Labels:** the renderer, QR codes, the SVG and PNG endpoints, the label preview on the place page with download buttons, the print sheet, and "Mark as printed".
-   *Checks:* a unit test for overflow (40 items gives "+ N more", and pinned items stay). The PNG must be 640 × 559. The QR must decode to the right URL (test with `jsqr` or similar).
+   *Checks:* a unit test for overflow (40 items gives "+ N more", and pinned items stay). The PNG must be 559 × 640. The QR must decode to the right URL (test with `jsqr` or similar).
 3. **Print queue:** change detection against `label_snapshot`, the change list, batch print, and zip download.
    *Checks:* editing an item on a printed place puts it in the queue with the right +/− lines. Printing it removes it from the queue.
 4. **Photos:** places and items, with thumbnails on cards (PocketBase `thumb`).

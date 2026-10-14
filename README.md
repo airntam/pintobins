@@ -1,10 +1,10 @@
 # Bins
 
-A self-hosted home inventory. Every place (location, room, shelf, bin, nested to any depth) gets a permanent code like `#0042`. Labeled places get a printed 80 × 70 mm label listing their contents plus a QR code that opens the place's page, where you view and edit everything.
+A self-hosted home inventory. Every place (location, room, shelf, bin, nested to any depth) gets a permanent code like `#0042`. Labeled places get a printed 70 × 80 mm label listing their contents plus a QR code that opens the place's page, where you view and edit everything.
 
 - **Backend:** PocketBase (JS hooks in `pocketbase/pb_hooks`, migrations in `pocketbase/pb_migrations`)
 - **Front end:** SvelteKit (Svelte 5, TypeScript, `adapter-node`) in `web/`
-- **Labels:** one SVG renderer (`web/src/lib/label/render.ts`); PNG is the same SVG rasterised at 203 dpi (640 × 559 px)
+- **Labels:** one SVG renderer (`web/src/lib/label/render.ts`); PNG is the same SVG rasterised at 203 dpi (559 × 640 px)
 - **Public URL:** `https://bin.fwoink.com` (QR codes point at `<PUBLIC_BASE_URL>/p/<code>`)
 
 ```
@@ -71,7 +71,7 @@ App on <http://localhost:5173>, PocketBase admin on <http://localhost:8090/_/>. 
 ### Tests
 
 ```bash
-npm test                 # unit tests: label overflow, 640x559 PNG, QR decode (jsQR), search normalisation, CSV
+npm test                 # unit tests: label overflow, 559x640 PNG, QR decode (jsQR), search normalisation, CSV
 npm run check            # svelte-check / TypeScript
 npm run e2e              # end-to-end checks against a running dev stack (use a throwaway pb_data)
 WEB_URL=http://localhost:3000 npm run smoke   # quick smoke test against any running stack
@@ -191,7 +191,7 @@ From there you can change the user's password (collection **users**). Re-run `up
 - **Browse** drills down from top-level places. **Search** (`/` focuses it) matches names, notes, item names and details; "m8x10", "M8×10" and "M8 x 10" are the same query.
 - **Place page** (what the QR opens, `/p/42`): tap an item to edit it; Enter adds the next item; a comma in details starts a new chip; changes save automatically with an **Undo** toast. Pin an item to keep it on the label when space is tight.
 - **New place:** quick entry takes one item per line, details after a colon (`Misc metric screws: M8×5, M8×10`).
-- **Labels:** the place page previews the label with **Download SVG / PNG**. **Print label** opens a print sheet sized 80 × 70 mm (`@page`), calls the print dialog, and afterwards **Mark as printed** stores the label text so changes can be detected. Choose the M260 as the printer, paper size 80 × 70 mm, margins none.
+- **Labels:** the place page previews the label with **Download SVG / PNG**. **Print label** opens a print sheet sized 70 × 80 mm (`@page`), calls the print dialog, and afterwards **Mark as printed** stores the label text so changes can be detected. Choose the M260 as the printer, paper size 70 × 80 mm, margins none.
 - **Print queue:** labeled places never printed, or changed since the last print, with a +/- list of what changed. Select, **Print N labels** or **Download zip** (PNG + SVG).
 - **Settings:** types (icon, colour, label default), CSV export/import, sign out.
 

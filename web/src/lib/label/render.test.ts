@@ -80,10 +80,10 @@ describe('label layout', () => {
 describe('label PNG', () => {
   const svg = renderLabelSvg(model(), geistEngine, { baseUrl: BASE, png: true });
 
-  it('is 640 x 559 px and pure black and white', () => {
+  it('is 559 x 640 px and pure black and white', () => {
     const png = PNG.sync.read(svgToPng(svg));
-    expect(png.width).toBe(640);
-    expect(png.height).toBe(559);
+    expect(png.width).toBe(559);
+    expect(png.height).toBe(640);
     const values = new Set<number>();
     for (let i = 0; i < png.data.length; i += 4) values.add(png.data[i]);
     expect([...values].sort()).toEqual([0, 255]);

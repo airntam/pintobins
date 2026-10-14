@@ -9,12 +9,12 @@ import type { Face, TextEngine } from './engine';
  * print and when rasterised to PNG.
  */
 
-export const LABEL_W = 80;
-export const LABEL_H = 70;
+export const LABEL_W = 70;
+export const LABEL_H = 80;
 export const DPI = 203;
-/** The 203 dpi bitmap: 80 mm → 640 px, 70 mm → 559 px. */
-export const PNG_W = 640;
-export const PNG_H = 559;
+/** The 203 dpi bitmap: 70 mm → 559 px, 80 mm → 640 px. */
+export const PNG_W = 559;
+export const PNG_H = 640;
 
 const PAD = { l: 3.6, t: 3.4, r: 3.4, b: 3.2 };
 const COL_GAP = 3;
@@ -46,7 +46,8 @@ export interface LabelLayout {
   /** Dashed divider above the child list, if any. */
   dashedY: number | null;
   ruleY: number;
-  leftW: number;
+  /** Width of the contents area (the full label width inside the padding). */
+  contentW: number;
   qr: { x: number; y: number; module: number; n: number; d: string };
   url: string;
 }
@@ -147,7 +148,7 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
   const p = new Painter(engine);
   const url = labelUrl(baseUrl, model.code);
 
-  // ---- QR (right column) ----
+  // ---- QR (top right, with the code under it) ----
   const qr = QRCode.create(url, { errorCorrectionLevel: 'M' });
   const n = qr.modules.size;
   const modulePx = Math.max(3, Math.floor(160 / n)); // 20 mm ≈ 160 px; whole pixels keep modules crisp
@@ -155,9 +156,9 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
   const qrSize = n * module;
   const codeText = pad4(model.code);
   const codeW = p.w(codeText, SIZE.code, 'mono');
-  const codeBaseline = LABEL_H - PAD.b - 0.2;
   const qrX = snapX(LABEL_W - PAD.r - qrSize);
-  const qrY = snapY(codeBaseline - SIZE.code * 0.72 - 1.8 - qrSize);
+  const qrY = snapY(PAD.t);
+  const codeBaseline = qrY + qrSize + 1.8 + SIZE.code * 0.72;
   const rects: string[] = [];
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
@@ -166,15 +167,20 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
   }
   p.text(codeText, qrX + qrSize / 2 - codeW / 2, codeBaseline, SIZE.code, 'mono');
 
-  // ---- left column ----
+  // ---- header (name and path beside the QR), then contents across the full width ----
   const x0 = PAD.l;
-  const leftW = qrX - COL_GAP - x0;
+  const headW = qrX - COL_GAP - x0;
+  const contentW = LABEL_W - PAD.l - PAD.r;
   const bottom = LABEL_H - PAD.b;
   let y = PAD.t;
 
-  const nameLines = wrap(p, tokenize([{ text: model.name, face: 'bold' }]), SIZE.name, leftW);
-  let shownName = nameLines.slice(0, 2);
-  if (nameLines.length > 2) shownName = [nameLines[0], oneLine(p, [...nameLines[1], { text: nameLines.slice(2).flat().map((t) => t.text).join(' '), face: 'bold' }], SIZE.name, leftW)];
+  const MAX_NAME_LINES = 3;
+  const nameLines = wrap(p, tokenize([{ text: model.name, face: 'bold' }]), SIZE.name, headW);
+  let shownName = nameLines.slice(0, MAX_NAME_LINES);
+  if (nameLines.length > MAX_NAME_LINES) {
+    const last = nameLines.slice(MAX_NAME_LINES - 1).flat();
+    shownName = [...nameLines.slice(0, MAX_NAME_LINES - 1), oneLine(p, last, SIZE.name, headW)];
+  }
   for (const line of shownName) {
     paintLine(p, line, x0, y, SIZE.name);
     y += SIZE.name * LH.name;
@@ -182,10 +188,11 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
   y += 0.9;
   const pathText = model.path.join(SEP);
   if (pathText) {
-    const t = oneLine(p, [{ text: pathText, face: 'regular' }], SIZE.path, leftW);
+    const t = oneLine(p, [{ text: pathText, face: 'regular' }], SIZE.path, headW);
     paintLine(p, t, x0, y, SIZE.path);
   }
   y += SIZE.path * LH.text + 1.3;
+  y = Math.max(y, codeBaseline + 1.8); // the rule sits below both the header text and the QR block
   const ruleY = y;
   y += 0.4 + 1.9;
   const contentTop = y;
@@ -229,8 +236,8 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
       if (e.kind === 'item') {
         let lines: Token[][];
         const toks = e.tokens(mode);
-        if (mode === 'full') lines = wrap(p, toks, SIZE.item, leftW);
-        else lines = [oneLine(p, toks, SIZE.item, leftW)];
+        if (mode === 'full') lines = wrap(p, toks, SIZE.item, contentW);
+        else lines = [oneLine(p, toks, SIZE.item, contentW)];
         blocks.push({
           child: false,
           height: lines.length * lhItem + ITEM_GAP,
@@ -242,7 +249,7 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
         const cs = SIZE.item * 0.88;
         const triW = 1.5;
         const cw = p.w(codeStr, cs, 'mono');
-        const nameMax = leftW - triW - 0.9 - cw - 1.0;
+        const nameMax = contentW - triW - 0.9 - cw - 1.0;
         const nameToks = oneLine(p, tokenize([{ text: e.name, face: 'bold' }]), SIZE.item, nameMax);
         const nw = nameToks.reduce((a, t, k) => a + p.w(t.text, SIZE.item, t.face) + (k ? p.w(' ', SIZE.item, 'regular') : 0), 0);
         blocks.push({
@@ -315,7 +322,7 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
   built!.paint(contentTop);
   const bodyH = built!.height;
   if (dropped.size) {
-    const t = oneLine(p, [{ text: moreText(dropped.size), face: 'regular' }], SIZE.more, leftW);
+    const t = oneLine(p, [{ text: moreText(dropped.size), face: 'regular' }], SIZE.more, contentW);
     paintLine(p, t, x0, contentTop + bodyH + 0.3, SIZE.more);
   }
 
@@ -327,7 +334,7 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
     text: p.d.join(''),
     dashedY: dashY,
     ruleY,
-    leftW,
+    contentW,
     qr: { x: qrX, y: qrY, module, n, d: rects.join('') },
     url
   };
@@ -349,12 +356,12 @@ export function renderLabelSvg(model: LabelModel, engine: TextEngine, opts: Rend
     `<svg xmlns="http://www.w3.org/2000/svg" ${size} viewBox="0 0 ${LABEL_W} ${LABEL_H}">`,
     `<rect width="${LABEL_W}" height="${LABEL_H}" fill="#fff"/>`,
     `<g fill="#000" stroke="none">`,
-    `<rect x="${f(x0)}" y="${f(L.ruleY)}" width="${f(L.leftW)}" height="0.4"/>`,
+    `<rect x="${f(x0)}" y="${f(L.ruleY)}" width="${f(L.contentW)}" height="0.4"/>`,
     `<path d="${L.text}"/>`,
     `<path d="${L.qr.d}" shape-rendering="crispEdges"/>`,
     `</g>`,
     L.dashedY !== null
-      ? `<line x1="${f(x0)}" y1="${f(L.dashedY)}" x2="${f(x0 + L.leftW)}" y2="${f(L.dashedY)}" stroke="#000" stroke-width="0.3" stroke-dasharray="1.2 0.8"/>`
+      ? `<line x1="${f(x0)}" y1="${f(L.dashedY)}" x2="${f(x0 + L.contentW)}" y2="${f(L.dashedY)}" stroke="#000" stroke-width="0.3" stroke-dasharray="1.2 0.8"/>`
       : '',
     `</svg>`
   ].join('');

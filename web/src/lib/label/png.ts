@@ -2,7 +2,7 @@ import { Resvg } from '@resvg/resvg-js';
 import { PNG } from 'pngjs';
 import { PNG_H, PNG_W } from './render';
 
-/** Rasterise the PNG-variant SVG at 203 dpi (640 × 559 px) to RGBA pixels. */
+/** Rasterise the PNG-variant SVG at 203 dpi (559 × 640 px) to RGBA pixels. */
 export function rasterize(svg: string) {
   const img = new Resvg(svg, { font: { loadSystemFonts: false } }).render();
   return { width: img.width, height: img.height, pixels: img.pixels };

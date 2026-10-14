@@ -25,7 +25,7 @@ const code = Number((res.headers.get('location') ?? '').match(/\/p\/(\d+)/)?.[1]
 ok(res.status === 303 && code > 0, `created a place (code ${code})`);
 
 const png = Buffer.from(await (await web(`/api/label/${code}.png`)).arrayBuffer());
-ok(png.readUInt32BE(16) === 640 && png.readUInt32BE(20) === 559, 'label PNG is 640 × 559');
+ok(png.readUInt32BE(16) === 559 && png.readUInt32BE(20) === 640, 'label PNG is 559 × 640');
 const found = await (await web('/search?q=m8x10')).text();
 ok(found.includes('Test item'), 'search finds "m8x10"');
 console.log(fails() ? `\n${fails()} FAILED` : '\nsmoke passed');

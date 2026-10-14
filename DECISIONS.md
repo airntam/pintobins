@@ -25,7 +25,7 @@ Choices made where the brief was silent or where reality differed. Newest concer
 - **Path on the label** leaves out the outermost ancestor once there are at least two ("Upstairs Office › Silver Shelf", not "Home › …"), matching the mockup. The place page breadcrumb shows the full path.
 - **Overflow order:** full wrapped details → details cut to one line → names only → drop entries from the end (child places go before items, pinned items never) with "+ N more · scan for full list".
 - **QR:** error correction M, module size is a whole number of 203 dpi pixels (5 px for a 29-module code, ≈ 18 mm square) so it stays crisp when thresholded. Larger would need a shorter URL.
-- **PNG** is the same layout rendered with `width=640 height=559` (80 mm × 70 mm at 203 dpi is 639.4 × 559.4 px, so the raster is non-uniformly scaled by well under 1%), thresholded to pure black and white, 8-bit greyscale.
+- **PNG** is the same layout rendered with `width=559 height=640` (70 mm × 80 mm at 203 dpi is 559.4 × 639.4 px, so the raster is non-uniformly scaled by well under 1%), thresholded to pure black and white, 8-bit greyscale.
 - **Snapshot** (`label_snapshot`) is the ordered text lines: name, path, item lines (`name — details`), child lines (`▸ Name #0043`). Change detection is a multiset diff, so re-ordering items isn't a change; renaming an item is one removed + one added line (2 changes).
 - Marking printed happens in a separate step ("Mark as printed") because the browser can't tell whether the printer actually printed.
 

@@ -48,7 +48,7 @@
 
 <svelte:head>
   <title>Print {data.labels.length} label{data.labels.length === 1 ? '' : 's'} · Bins</title>
-  {@html '<style>@page { size: 80mm 70mm; margin: 0 }</style>'}
+  {@html '<style>@page { size: 70mm 80mm; margin: 0 }</style>'}
 </svelte:head>
 
 <svelte:window onafterprint={() => (printed = true)} />
@@ -56,7 +56,7 @@
 <div class="toolbar">
   <div class="info">
     <strong>{data.labels.length} label{data.labels.length === 1 ? '' : 's'}</strong>
-    <span class="muted">80 × 70 mm · {data.labels.map((l) => pad4(l.code)).join(' ')}</span>
+    <span class="muted">70 × 80 mm · {data.labels.map((l) => pad4(l.code)).join(' ')}</span>
   </div>
   {#if error}<span class="err" role="alert">{error}</span>{/if}
   <a class="btn" href={back}>Back</a>
@@ -87,8 +87,8 @@
   .err { color: var(--remove); font-size: var(--fs-md); }
   .tip { padding: 12px 16px 0; font-size: var(--fs-md); color: var(--text-2); }
   .sheet { display: flex; flex-wrap: wrap; gap: 16px; padding: 16px; justify-content: center; }
-  .label { width: 80mm; height: 70mm; background: #fff; flex-shrink: 0; }
-  .label img { display: block; width: 80mm; height: 70mm; }
+  .label { width: 70mm; height: 80mm; background: #fff; flex-shrink: 0; }
+  .label img { display: block; width: 70mm; height: 80mm; }
 
   @media print {
     :global(body) { background: #fff !important; }
