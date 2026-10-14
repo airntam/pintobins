@@ -113,3 +113,14 @@ describe.skipIf(!process.env.SAMPLE_OUT)('samples', () => {
     }
   });
 });
+
+describe('path data', () => {
+  it('never contains NaN, wherever a glyph lands', () => {
+    // opentype.js's own serializer produced NaN for some positions (seen with "Lenses")
+    for (let x = 0; x < 30; x += 0.013) {
+      expect(geistEngine.path('s', x, 13.3, 4.8, 'bold')).not.toMatch(/NaN|undefined|Infinity/);
+    }
+    const svg = renderLabelSvg(model({ name: 'Vintage Camera Lenses', path: ['Purple Room', 'Silver Shelf'] }), geistEngine, { baseUrl: BASE });
+    expect(svg).not.toMatch(/NaN|undefined|Infinity/);
+  });
+});
