@@ -118,11 +118,13 @@ Portainer: open the stack, **Pull and redeploy**. Data survives in the `pb_data`
 
 ## Cloudflare Tunnel for `bin.fwoink.com`
 
-1. Cloudflare dashboard → **Zero Trust → Networks → Tunnels → Create a tunnel** → type **Cloudflared** → name it `bins`.
-2. Copy the **tunnel token** from the install command (the long string after `--token`). That is `CLOUDFLARE_TUNNEL_TOKEN`.
-3. **Public hostname** tab: subdomain `bin`, domain `fwoink.com`, service type **HTTP**, URL `web:3000`. (The `cloudflared` container shares the compose network with `web`, so the service name works.)
-4. Deploy the stack with the `tunnel` profile (above). The tunnel shows **Healthy** in the dashboard.
-5. Cloudflare creates the `bin.fwoink.com` DNS record for you. Nothing is opened on your router.
+The domain must already be on Cloudflare (its nameservers point to Cloudflare).
+
+1. Cloudflare dashboard (the main one, not Zero Trust) → **Networking → Tunnels** → **Create a tunnel**. Name it `bins` and select **Create Tunnel**.
+2. Choose **Docker** as the environment and copy the **tunnel token** from the install command (the long string after `--token`). Don't run that command; the stack has its own `cloudflared`. The token is `CLOUDFLARE_TUNNEL_TOKEN`.
+3. Set `CLOUDFLARE_TUNNEL_TOKEN` and `PUBLIC_BASE_URL=https://bin.fwoink.com`, then start the stack with the `tunnel` profile (above). Back in the dashboard, wait for the tunnel to connect, then select **Continue**.
+4. Open the tunnel → **Routes** tab → **Add route** → **Published application**: subdomain `bin`, domain `fwoink.com`, service URL `http://web:3000`. Select **Add route**. (`cloudflared` shares the compose network with `web`, so the service name works, and the port is the container's 3000 whatever `WEB_PORT` is.)
+5. Cloudflare creates the `bin.fwoink.com` DNS record for you, and the tunnel shows **Healthy**. Nothing is opened on your router.
 
 Optional extra layer: Cloudflare Access in front of the hostname. Not required, the app has its own login.
 
