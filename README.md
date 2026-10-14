@@ -5,7 +5,7 @@ A self-hosted home inventory. Every place (location, room, shelf, bin, nested to
 - **Backend:** PocketBase (JS hooks in `pocketbase/pb_hooks`, migrations in `pocketbase/pb_migrations`)
 - **Front end:** SvelteKit (Svelte 5, TypeScript, `adapter-node`) in `web/`
 - **Labels:** one SVG renderer (`web/src/lib/label/render.ts`); PNG is the same SVG rasterised at 203 dpi (559 × 640 px)
-- **Public URL:** `https://bin.fwoink.com` (QR codes point at `<PUBLIC_BASE_URL>/p/<code>`)
+- **Public URL:** `https://bin.clevernaut.com` (QR codes point at `<PUBLIC_BASE_URL>/p/<code>`)
 
 ```
 pocketbase/   Dockerfile, pb_hooks/, pb_migrations/
@@ -23,7 +23,7 @@ Everything comes from environment variables (see `.env.example`):
 
 | Variable | Purpose |
 | --- | --- |
-| `PUBLIC_BASE_URL` | Public address, e.g. `https://bin.fwoink.com`. Goes into every QR code, so set it before printing labels. |
+| `PUBLIC_BASE_URL` | Public address, e.g. `https://bin.clevernaut.com`. Goes into every QR code, so set it before printing labels. |
 | `PB_URL` | Where the web app reaches PocketBase (`http://pocketbase:8090` in compose, `http://127.0.0.1:8090` in plain-Node dev). |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | The one user. Created on first boot if no user exists; changing them later does nothing. |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Only for the `tunnel` profile. |
@@ -90,7 +90,7 @@ Push this repository to GitHub first (`.env`, `pb_data` and `node_modules` are g
 
    | Name | Value |
    | --- | --- |
-   | `PUBLIC_BASE_URL` | `https://bin.fwoink.com` |
+   | `PUBLIC_BASE_URL` | `https://bin.clevernaut.com` |
    | `ADMIN_EMAIL` | your email |
    | `ADMIN_PASSWORD` | a strong password |
    | `CLOUDFLARE_TUNNEL_TOKEN` | the token from the tunnel step below |
@@ -98,7 +98,7 @@ Push this repository to GitHub first (`.env`, `pb_data` and `node_modules` are g
 
    `COMPOSE_PROFILES=tunnel` is what enables the `cloudflared` service. Leave it out to run without the tunnel.
 3. **Deploy the stack.** Portainer builds both images on the server. If building is too slow there, use the prebuilt images instead (see *Prebuilt images* below).
-4. Wait until all containers are healthy, open `https://bin.fwoink.com`, and sign in.
+4. Wait until all containers are healthy, open `https://bin.clevernaut.com`, and sign in.
 
 Only `web` is exposed (on `WEB_PORT`, default 3000, for LAN access). PocketBase has no published port and is reachable only on the internal compose network.
 
@@ -116,15 +116,15 @@ Portainer: open the stack, **Pull and redeploy**. Data survives in the `pb_data`
 
 ---
 
-## Cloudflare Tunnel for `bin.fwoink.com`
+## Cloudflare Tunnel for `bin.clevernaut.com`
 
 The domain must already be on Cloudflare (its nameservers point to Cloudflare).
 
 1. Cloudflare dashboard (the main one, not Zero Trust) → **Networking → Tunnels** → **Create a tunnel**. Name it `bins` and select **Create Tunnel**.
 2. Choose **Docker** as the environment and copy the **tunnel token** from the install command (the long string after `--token`). Don't run that command; the stack has its own `cloudflared`. The token is `CLOUDFLARE_TUNNEL_TOKEN`.
-3. Set `CLOUDFLARE_TUNNEL_TOKEN` and `PUBLIC_BASE_URL=https://bin.fwoink.com`, then start the stack with the `tunnel` profile (above). Back in the dashboard, wait for the tunnel to connect, then select **Continue**.
-4. Open the tunnel → **Routes** tab → **Add route** → **Published application**: subdomain `bin`, domain `fwoink.com`, service URL `http://web:3000`. Select **Add route**. (`cloudflared` shares the compose network with `web`, so the service name works, and the port is the container's 3000 whatever `WEB_PORT` is.)
-5. Cloudflare creates the `bin.fwoink.com` DNS record for you, and the tunnel shows **Healthy**. Nothing is opened on your router.
+3. Set `CLOUDFLARE_TUNNEL_TOKEN` and `PUBLIC_BASE_URL=https://bin.clevernaut.com`, then start the stack with the `tunnel` profile (above). Back in the dashboard, wait for the tunnel to connect, then select **Continue**.
+4. Open the tunnel → **Routes** tab → **Add route** → **Published application**: subdomain `bin`, domain `clevernaut.com`, service URL `http://web:3000`. Select **Add route**. (`cloudflared` shares the compose network with `web`, so the service name works, and the port is the container's 3000 whatever `WEB_PORT` is.)
+5. Cloudflare creates the `bin.clevernaut.com` DNS record for you, and the tunnel shows **Healthy**. Nothing is opened on your router.
 
 Optional extra layer: Cloudflare Access in front of the hostname. Not required, the app has its own login.
 
@@ -136,9 +136,9 @@ Coolify provides its own HTTPS proxy and domain handling, so **don't** use the t
 
 1. **New resource → Public/Private Repository** (GitHub), pick the repo and branch.
 2. **Build pack: Docker Compose**, compose file `/docker-compose.yml`.
-3. After it parses, set the domain on the **web** service: `https://bin.fwoink.com:3000` (the `:3000` is the container port). Leave `pocketbase` without a domain.
-4. **Environment variables:** `PUBLIC_BASE_URL=https://bin.fwoink.com`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. (`CLOUDFLARE_TUNNEL_TOKEN` is not needed.)
-5. Point `bin.fwoink.com` at the Coolify server in DNS (an `A` record, or a proxied record) and **Deploy**.
+3. After it parses, set the domain on the **web** service: `https://bin.clevernaut.com:3000` (the `:3000` is the container port). Leave `pocketbase` without a domain.
+4. **Environment variables:** `PUBLIC_BASE_URL=https://bin.clevernaut.com`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`. (`CLOUDFLARE_TUNNEL_TOKEN` is not needed.)
+5. Point `bin.clevernaut.com` at the Coolify server in DNS (an `A` record, or a proxied record) and **Deploy**.
 
 The `pb_data` named volume is created by Coolify with the compose project prefix. The published `3000` port is harmless behind Coolify's proxy; remove the `ports:` line from the compose file if you'd rather not publish it.
 

@@ -22,9 +22,9 @@ A self-hosted home inventory app. Every **place** (a location, room, shelf or bi
 | Headless UI | `bits-ui`, only where needed (menus, dialogs, combobox) |
 | QR | `qrcode` (SVG output, error correction level M) |
 | Label PNG | `@resvg/resvg-js` (SVG → PNG at 203 dpi). Bundle Geist and Geist Mono TTF files (OFL) in `static/fonts/` so resvg can render them. |
-| Deploy | Docker Compose stack, deployable as-is through **Portainer** (Stacks → Repository) or **Coolify** (Docker Compose build pack). Public URL: `https://bin.fwoink.com`. |
+| Deploy | Docker Compose stack, deployable as-is through **Portainer** (Stacks → Repository) or **Coolify** (Docker Compose build pack). Public URL: `https://bin.clevernaut.com`. |
 
-The env vars `PUBLIC_BASE_URL=https://bin.fwoink.com`, `PB_URL=http://pocketbase:8090` and `CLOUDFLARE_TUNNEL_TOKEN` go in `.env`. Provide a `.env.example` file.
+The env vars `PUBLIC_BASE_URL=https://bin.clevernaut.com`, `PB_URL=http://pocketbase:8090` and `CLOUDFLARE_TUNNEL_TOKEN` go in `.env`. Provide a `.env.example` file.
 
 ## Environments: develop on Windows, deploy on Linux
 
@@ -76,7 +76,7 @@ Hooks in `pb_hooks/`:
 | --- | --- |
 | `/login` | Email and password. Sessions last 30 days. |
 | `/` | Browse: top-level places as cards, each drilling down. |
-| `/p/[code]` | The place page. This is what the QR code opens: `https://bin.fwoink.com/p/42`, with no `#` and leading zeros optional. |
+| `/p/[code]` | The place page. This is what the QR code opens: `https://bin.clevernaut.com/p/42`, with no `#` and leading zeros optional. |
 | `/new?parent=[code]` | Create place |
 | `/search?q=` | Search |
 | `/print` | Print queue |
@@ -140,7 +140,7 @@ UI rules:
    *Checks:* editing an item on a printed place puts it in the queue with the right +/− lines. Printing it removes it from the queue.
 4. **Photos:** places and items, with thumbnails on cards (PocketBase `thumb`).
 5. **Polish:** moving places and items (a parent picker with search), type settings, CSV export and import, and empty states.
-6. **Deploy:** the production compose, the Dockerfiles, `.env.example` and `.gitattributes`. A README with step-by-step guides for (a) local dev on Windows, (b) deploying through Portainer Stacks → Repository with the `tunnel` profile, and (c) deploying through Coolify. It also covers the Cloudflare Tunnel setup for `bin.fwoink.com`, and a nightly backup of the `pb_data` volume (a `docker run --rm -v pb_data:/data …` tar command for cron).
+6. **Deploy:** the production compose, the Dockerfiles, `.env.example` and `.gitattributes`. A README with step-by-step guides for (a) local dev on Windows, (b) deploying through Portainer Stacks → Repository with the `tunnel` profile, and (c) deploying through Coolify. It also covers the Cloudflare Tunnel setup for `bin.clevernaut.com`, and a nightly backup of the `pb_data` volume (a `docker run --rm -v pb_data:/data …` tar command for cron).
    *Checks:* `docker compose config` validates. `docker compose build` succeeds. The stack comes up healthy on Docker Desktop using only named volumes and env vars.
 
 Do phases 1–5 against the Windows dev setup. Keep the production compose building from phase 1 onward, so deploy issues show up early.

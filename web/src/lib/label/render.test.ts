@@ -6,7 +6,7 @@ import { layoutLabel, renderLabelSvg } from './render';
 import { rasterize, svgToPng } from './png';
 import type { LabelModel } from '$lib/types';
 
-const BASE = 'https://bin.fwoink.com';
+const BASE = 'https://bin.clevernaut.com';
 
 const model = (over: Partial<LabelModel> = {}): LabelModel => ({
   code: 42,
