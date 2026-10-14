@@ -175,7 +175,7 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
   let y = PAD.t;
 
   const MAX_NAME_LINES = 3;
-  const nameLines = wrap(p, tokenize([{ text: model.name, face: 'bold' }]), SIZE.name, headW);
+  const nameLines = wrap(p, tokenize([{ text: model.name, face: 'display' }]), SIZE.name, headW);
   let shownName = nameLines.slice(0, MAX_NAME_LINES);
   if (nameLines.length > MAX_NAME_LINES) {
     const last = nameLines.slice(MAX_NAME_LINES - 1).flat();

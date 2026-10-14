@@ -2,8 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import opentype from 'opentype.js';
 
-/** The four faces a label uses. Text is converted to outlines, so labels never depend on installed fonts. */
-export type Face = 'regular' | 'bold' | 'mono';
+/**
+ * The faces a label uses, in the Data voice of Aaron's Design System (Iosevka Aile
+ * for words, Iosevka for codes). Text is converted to outlines, so labels never
+ * depend on installed fonts.
+ */
+export type Face = 'display' | 'bold' | 'regular' | 'mono';
 
 export interface TextEngine {
   /** Advance width of `text` at `size` (same unit as `size`). */
@@ -13,28 +17,59 @@ export interface TextEngine {
 }
 
 const FILES: Record<Face, string> = {
-  regular: 'Geist-Regular.ttf',
+  display: 'IosevkaAile-800.ttf', // the bin name
+  bold: 'IosevkaAile-600.ttf', // item and child names
+  regular: 'IosevkaAile-400.ttf', // path, details, "+ N more"
+  mono: 'IosevkaMono-600.ttf' // codes
+};
+
+/** The Iosevka files are Latin subsets; any character they lack is drawn in Geist. */
+const FALLBACK: Record<Face, string> = {
+  display: 'Geist-Bold.ttf',
   bold: 'Geist-Bold.ttf',
+  regular: 'Geist-Regular.ttf',
   mono: 'GeistMono-Bold.ttf'
 };
 
-const fonts = new Map<Face, opentype.Font>();
+const fonts = new Map<string, opentype.Font>();
 
-function font(face: Face): opentype.Font {
-  let f = fonts.get(face);
+function load(file: string): opentype.Font {
+  let f = fonts.get(file);
   if (!f) {
     const dir = process.env.FONT_DIR || join(process.cwd(), 'static', 'fonts');
-    const buf = readFileSync(join(dir, FILES[face]));
+    const buf = readFileSync(join(dir, file));
     f = opentype.parse(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer);
-    fonts.set(face, f);
+    fonts.set(file, f);
   }
   return f;
 }
 
-/** Engine backed by the bundled Geist fonts (static/fonts). */
-export const geistEngine: TextEngine = {
-  width: (text, size, face) => font(face).getAdvanceWidth(text, size),
-  path: (text, x, y, size, face) => pathData(font(face).getPath(text, x, y, size).commands)
+/** Split text into runs that share a font: the face's own font where it has the glyph, else the fallback. */
+function runs(text: string, face: Face): { text: string; font: opentype.Font }[] {
+  const main = load(FILES[face]);
+  const out: { text: string; font: opentype.Font }[] = [];
+  for (const ch of text) {
+    const has = /\s/.test(ch) || main.charToGlyphIndex(ch) > 0;
+    const f = has ? main : load(FALLBACK[face]);
+    const last = out.at(-1);
+    if (last && last.font === f) last.text += ch;
+    else out.push({ text: ch, font: f });
+  }
+  return out;
+}
+
+/** Engine backed by the bundled fonts (static/fonts). */
+export const labelEngine: TextEngine = {
+  width: (text, size, face) => runs(text, face).reduce((w, r) => w + r.font.getAdvanceWidth(r.text, size), 0),
+  path: (text, x, y, size, face) => {
+    let d = '';
+    let cx = x;
+    for (const r of runs(text, face)) {
+      d += pathData(r.font.getPath(r.text, cx, y, size).commands);
+      cx += r.font.getAdvanceWidth(r.text, size);
+    }
+    return d;
+  }
 };
 
 const num = (v: number) => {

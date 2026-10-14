@@ -46,3 +46,5 @@ Choices made where the brief was silent or where reality differed. Newest concer
 - The compose project is named `bins`, so the data volume is `bins_pb_data` when run from the CLI (Portainer prefixes the stack name instead).
 - `COMPOSE_PROFILES=tunnel` is how Portainer turns on `cloudflared`; Coolify leaves it off.
 - A small `docker-compose.admin.yml` publishes the PocketBase admin UI on the server's loopback only, for password resets.
+
+- **Label typeface: Data voice of Aaron's Design System** (2026-10-13). Labels use Iosevka Aile 800 (place name), 600 (item and child names), 400 (path, details, "+ N more") and Iosevka 600 (codes). The UI keeps Geist. Fonts are the design system's Latin-subset WOFF2 files converted to TTF (opentype.js can't read WOFF2) in `web/static/fonts/`, with `OFL-Iosevka.txt`. Any character missing from the subset falls back to the matching Geist face, per character. Layout, sizes and spacing are unchanged; the design system's copy and mark rules (em dashes, ▸, centred code) are deliberately not applied.
