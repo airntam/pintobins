@@ -24,7 +24,7 @@ If you're on Mac or Linux, skip to "Install" below.
    notepad .env
    ```
 
-5. In Notepad, set the four values shown under "Install" step 3 below, then save with Ctrl+S and close it. The file must be named exactly `.env`, not `.env.txt`.
+5. In Notepad, check and change the values shown under "Install" step 3 below, then save with Ctrl+S and close it. The file must be named exactly `.env`, not `.env.txt`.
 6. Still in PowerShell, start it:
 
    ```powershell
@@ -44,7 +44,7 @@ You can also manage it from Docker Desktop's **Containers** tab: the `bins` grou
 2. Download these two files into it:
    - [`docker-compose.ghcr.yml`](https://raw.githubusercontent.com/airntam/pintobins/main/docker-compose.ghcr.yml)
    - [`.env.example`](https://raw.githubusercontent.com/airntam/pintobins/main/.env.example), then rename it to `.env`
-3. Open `.env` in a text editor and set these values:
+3. Open `.env` in a text editor and make sure these four lines are set (keep the other lines as they are):
 
    ```
    GHCR_OWNER=airntam
