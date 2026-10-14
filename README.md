@@ -108,6 +108,8 @@ Only `web` is exposed (on `WEB_PORT`, default 3000, for LAN access). PocketBase 
 
 Portainer: open the stack, **Pull and redeploy**. Data survives in the `pb_data` named volume.
 
+> Setting this up for family? See [docs/INSTALL-FAMILY.md](docs/INSTALL-FAMILY.md).
+
 ### Prebuilt images (optional)
 
 `.github/workflows/images.yml` builds `ghcr.io/<owner>/bins-web` and `bins-pocketbase` on every push to `main`. In Portainer use `docker-compose.ghcr.yml` as the compose path and add `GHCR_OWNER=<your github user, lowercase>` (and optionally `IMAGE_TAG`). For private packages, add `ghcr.io` as a registry in Portainer with a GitHub token that has `read:packages`.
