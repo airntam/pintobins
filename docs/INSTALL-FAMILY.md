@@ -7,6 +7,37 @@ Pinto Bins is a home inventory app: every shelf, bin and box gets a code and a p
 - **Docker Desktop** (Windows or Mac) from https://www.docker.com/products/docker-desktop, or Docker Engine on Linux. Install it and start it once.
 - About 500 MB of disk space.
 
+## Windows with Docker Desktop (step by step)
+
+If you're on Mac or Linux, skip to "Install" below.
+
+1. **Install Docker Desktop** from https://www.docker.com/products/docker-desktop. Keep "Use WSL 2 instead of Hyper-V" ticked. Restart Windows if it asks. If it says virtualization is disabled, turn on "Virtualization" (Intel VT-x / AMD-V) in your PC's BIOS.
+2. **Start Docker Desktop** and wait until the whale icon in the system tray stops animating and the app says "Engine running". Accept the license terms. You don't need to sign in.
+3. In Docker Desktop, open Settings → General and tick **Start Docker Desktop when you sign in to your computer**. That way Pinto Bins comes back after a reboot.
+4. **Open PowerShell** (Start menu → type "PowerShell") and paste these lines. They create a folder in your user directory and download the two files:
+
+   ```powershell
+   mkdir $HOME\pintobins; cd $HOME\pintobins
+   $raw = "https://raw.githubusercontent.com/airntam/pintobins/main"
+   Invoke-WebRequest "$raw/docker-compose.ghcr.yml" -OutFile docker-compose.ghcr.yml
+   Invoke-WebRequest "$raw/.env.example" -OutFile .env
+   notepad .env
+   ```
+
+5. In Notepad, set the four values shown under "Install" step 3 below, then save with Ctrl+S and close it. The file must be named exactly `.env`, not `.env.txt`.
+6. Still in PowerShell, start it:
+
+   ```powershell
+   docker compose -f docker-compose.ghcr.yml up -d
+   ```
+
+   The first run downloads the images, which takes a minute or two. If Windows Firewall asks about Docker, click **Allow** on private networks so your phone can connect.
+7. Open http://localhost:3000 and sign in.
+
+To find your PC's address for phone use, run `ipconfig` and look for the **IPv4 Address** under your Wi-Fi or Ethernet adapter (for example `192.168.1.50`).
+
+You can also manage it from Docker Desktop's **Containers** tab: the `bins` group has start, stop and log buttons. The commands below always work from PowerShell, opened in the `pintobins` folder.
+
 ## Install
 
 1. Make a folder, for example `pintobins`.
@@ -69,7 +100,7 @@ Everything lives in the `pb_data` volume. To save a copy into the current folder
 docker run --rm -v bins_pb_data:/data -v "${PWD}:/backup" alpine tar czf /backup/pintobins-backup.tgz -C /data .
 ```
 
-On Windows Command Prompt, use `%cd%` instead of `${PWD}`. If the volume name differs, run `docker volume ls` and look for the one ending in `pb_data`. The main README has a nightly cron version.
+This works in PowerShell as written. In Command Prompt use `%cd%` instead of `${PWD}`. If the volume name differs, run `docker volume ls` and look for the one ending in `pb_data`. The main README has a nightly cron version.
 
 ## Remove it
 
