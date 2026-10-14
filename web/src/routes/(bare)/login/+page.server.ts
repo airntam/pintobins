@@ -1,10 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { setAuthCookie } from '$lib/server/pb';
+import { baseUrl, setAuthCookie } from '$lib/server/pb';
 
 const safeNext = (n: string | null) => (n && n.startsWith('/') && !n.startsWith('//') ? n : '/');
 
 export function load({ locals, url }) {
   if (locals.user) redirect(303, safeNext(url.searchParams.get('next')));
+  return { baseUrl: baseUrl() };
 }
 
 export const actions = {

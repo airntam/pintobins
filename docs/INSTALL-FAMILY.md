@@ -111,6 +111,7 @@ docker compose -f docker-compose.ghcr.yml down -v    # also deletes all your dat
 
 ## Trouble
 
+- **Sign-in just reloads the page, or shows a message about the address:** `PUBLIC_BASE_URL` in `.env` doesn't match the address in your browser. They must match exactly, including `http` vs `https` and the port. Fix `.env`, then run the `up -d` command again.
 - **Login says "Cross-site POST form submissions are forbidden":** the address in your browser doesn't match `PUBLIC_BASE_URL`. Fix one of them, then run the update command.
 - **`pull` is denied:** the images may be private. Tell Aaron.
 - **Forgot your password:** see "Admin UI / password reset" in the main README.
