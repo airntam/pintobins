@@ -1,5 +1,6 @@
 # Same stack as docker-compose.yml, but pulls the prebuilt images from GHCR
 # (built by .github/workflows/images.yml) instead of building on the server.
+# PUBLIC_BASE_URL defaults to http://localhost:<WEB_PORT>; set it only for a LAN address or domain.
 # Set GHCR_OWNER to your GitHub user or org (lowercase). If the packages are private,
 # `docker login ghcr.io` on the server first (or add the registry in Portainer).
 name: bins
@@ -29,8 +30,8 @@ services:
         condition: service_healthy
     environment:
       PB_URL: http://pocketbase:8090
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set PUBLIC_BASE_URL}
-      ORIGIN: ${PUBLIC_BASE_URL}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:${WEB_PORT:-3000}}
+      ORIGIN: ${PUBLIC_BASE_URL:-http://localhost:${WEB_PORT:-3000}}
       PORT: "3000"
     ports:
       - "${WEB_PORT:-3000}:3000"

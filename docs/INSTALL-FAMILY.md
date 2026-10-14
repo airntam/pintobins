@@ -44,17 +44,19 @@ You can also manage it from Docker Desktop's **Containers** tab: the `bins` grou
 2. Download these two files into it:
    - [`docker-compose.ghcr.yml`](https://raw.githubusercontent.com/airntam/pintobins/main/docker-compose.ghcr.yml)
    - [`.env.example`](https://raw.githubusercontent.com/airntam/pintobins/main/.env.example), then rename it to `.env`
-3. Open `.env` in a text editor and make sure these four lines are set (keep the other lines as they are):
+3. Open `.env` in a text editor and make sure these lines are set (keep the other lines as they are):
 
    ```
    GHCR_OWNER=airntam
    ADMIN_EMAIL=you@example.com
    ADMIN_PASSWORD=pick-a-long-password
-   PUBLIC_BASE_URL=http://localhost:3000
+   WEB_PORT=3000
    ```
 
-   - `ADMIN_EMAIL` and `ADMIN_PASSWORD` are your login. They are only used the first time the app starts. Changing them later does not change your password.
-   - `PUBLIC_BASE_URL` must be exactly the address you type into your browser. See "Using it from your phone" below.
+   - `ADMIN_EMAIL` and `ADMIN_PASSWORD` are your login.
+   - `WEB_PORT` is the port you'll open in the browser. Use another number (for example 3001) if 3000 is taken.
+   - The app's address defaults to `http://localhost:` plus `WEB_PORT`. You only need a `PUBLIC_BASE_URL=` line if you use a LAN address or domain; see "Using it from your phone" below. If you add one, it must be exactly the address you type into your browser.
+   - `ADMIN_EMAIL` and `ADMIN_PASSWORD` only create your login when the app's data is brand new. If you start over with different values, see Trouble below.
    - You can ignore `CLOUDFLARE_TUNNEL_TOKEN`.
 4. In a terminal inside that folder, run:
 
@@ -112,6 +114,7 @@ docker compose -f docker-compose.ghcr.yml down -v    # also deletes all your dat
 ## Trouble
 
 - **Sign-in just reloads the page, or shows a message about the address:** `PUBLIC_BASE_URL` in `.env` doesn't match the address in your browser. They must match exactly, including `http` vs `https` and the port. Fix `.env`, then run the `up -d` command again.
+- **"Email or password is wrong" with the right values:** the login is only created the first time the app starts with empty data. If this data volume already existed (from an earlier try), it still has the old login. If you have nothing to keep, run `docker compose -f docker-compose.ghcr.yml down -v` and then `up -d` again to start fresh. This deletes all data.
 - **Login says "Cross-site POST form submissions are forbidden":** the address in your browser doesn't match `PUBLIC_BASE_URL`. Fix one of them, then run the update command.
 - **`pull` is denied:** the images may be private. Tell Aaron.
 - **Forgot your password:** see "Admin UI / password reset" in the main README.
