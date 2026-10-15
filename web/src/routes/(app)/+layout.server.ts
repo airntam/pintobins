@@ -1,4 +1,5 @@
 import { flatTree, loadCtx, printQueue } from '$lib/server/data';
+import { baseUrl } from '$lib/server/pb';
 
 export async function load({ locals, depends }) {
   depends('app:layout');
@@ -14,6 +15,7 @@ export async function load({ locals, depends }) {
       parent: place.parent,
       depth
     })),
-    queueCount: printQueue(ctx).length
+    queueCount: printQueue(ctx).length,
+    baseUrl: baseUrl()
   };
 }

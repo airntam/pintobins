@@ -9,6 +9,11 @@
   import TypeIcon from '$lib/components/TypeIcon.svelte';
 
   let { data, children } = $props();
+  // Saving forms only works from the address set as PUBLIC_BASE_URL; say so instead of failing silently.
+  let wrongAddress = $state(false);
+  $effect(() => {
+    wrongAddress = location.origin !== data.baseUrl;
+  });
 
   const path = $derived(page.url.pathname);
   const currentCode = $derived(path.startsWith('/p/') ? parseInt(path.slice(3), 10) : NaN);
@@ -83,6 +88,13 @@
         >
       </header>
     {/if}
+    {#if wrongAddress}
+      <p class="wrong-address" role="alert">
+        You opened the app at <span class="mono">{location.origin}</span>, but it's set up for
+        <a class="mono" href={data.baseUrl + location.pathname + location.search}>{data.baseUrl}</a>. Saving won't work from
+        here; use that address.
+      </p>
+    {/if}
     <div class="content">
       {@render children()}
     </div>
@@ -109,6 +121,8 @@
 />
 
 <style>
+  .wrong-address { margin: 12px 14px 0; padding: 10px 12px; border: 1px solid var(--warn-border); border-radius: var(--r-md); background: var(--warn-bg); color: var(--warn); font-size: var(--fs-md); }
+  .wrong-address a { color: var(--warn); text-decoration: underline; }
   .shell { min-height: 100dvh; display: flex; flex-direction: column; }
   .sidebar { display: none; }
   .main { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
