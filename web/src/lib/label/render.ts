@@ -208,17 +208,13 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
     );
   }
 
-  // ---- left of the QR: caption and item count, the code, then the info strip ----
+  // ---- left of the QR: caption, the code, then the info strip ----
   const headW = boxX - COL_GAP - x0;
   const boxBottom = boxY + boxW;
   const capBase = PAD.t + SIZE.caption * CAP;
   {
-    const k = model.items.length;
-    const count = `${k} ITEM${k === 1 ? '' : 'S'}`;
-    const cw = trackedW(count, SIZE.caption, 'regular', 0.3);
-    tracked(count, x0 + headW - cw, capBase, SIZE.caption, 'regular', 0.3);
     const caption = `${(model.type ?? '').toUpperCase()} NO.`.trim();
-    tracked(fitTracked(caption, SIZE.caption, 'regular', 0.45, headW - cw - 2), x0, capBase, SIZE.caption, 'regular', 0.45);
+    tracked(fitTracked(caption, SIZE.caption, 'regular', 0.45, headW), x0, capBase, SIZE.caption, 'regular', 0.45);
   }
   const stripH = 4.0;
   const stripTop = boxBottom - stripH;
