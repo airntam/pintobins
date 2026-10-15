@@ -322,12 +322,20 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
       if (e.kind === 'item') {
         let lines: Token[][];
         const toks = e.tokens(mode);
-        if (mode === 'full') lines = wrap(p, toks, SIZE.item, contentW);
-        else lines = [oneLine(p, toks, SIZE.item, contentW)];
+        // a small square bullet; wrapped lines hang under the text, aligned with child names
+        const indent = 2.4;
+        const textW = contentW - indent;
+        if (mode === 'full') lines = wrap(p, toks, SIZE.item, textW);
+        else lines = [oneLine(p, toks, SIZE.item, textW)];
         blocks.push({
           child: false,
           height: lines.length * lhItem + ITEM_GAP,
-          draw: (top) => lines.forEach((l, k) => paintLine(p, l, x0, top + k * lhItem, SIZE.item))
+          draw: (top) => {
+            const yc = top + BASELINE * SIZE.item - SIZE.item * 0.36;
+            const sq = 1.0;
+            p.d.push(`M${f(x0 + 0.2)} ${f(yc - sq / 2)}h${f(sq)}v${f(sq)}h${f(-sq)}z`);
+            lines.forEach((l, k) => paintLine(p, l, x0 + indent, top + k * lhItem, SIZE.item));
+          }
         });
       } else {
         // ▸ Name #0043 on one line
