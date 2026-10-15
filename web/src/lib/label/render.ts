@@ -26,6 +26,8 @@ const QR_PAD = 1.6; // quiet zone between the QR and its box
 const PX = LABEL_W / PNG_W; // one bitmap pixel, in mm
 
 const SIZE = { name: 4.8, path: 2.0, item: 2.55, more: 2.2, caption: 2.0, bigCode: 13 };
+/** Between an item's name and its details on the label (the snapshot text keeps " — "). */
+const DETAIL_SEP = ':::';
 const CAP = 0.735; // cap height of the Iosevka faces, in em
 const LH = { name: 1.08, text: 1.22 };
 const ITEM_GAP = 0.7;
@@ -292,7 +294,7 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
       tokens: (mode) => {
         const base: Token[] = [{ text: it.name, face: 'bold' }];
         if (mode === 'none' || !it.details.length) return tokenize(base);
-        return tokenize([...base, { text: '—', face: 'regular' }, { text: it.details.join(', '), face: 'regular' }]);
+        return tokenize([...base, { text: DETAIL_SEP, face: 'regular' }, { text: it.details.join(', '), face: 'regular' }]);
       }
     })),
     ...model.children.map<Entry>((c) => ({
