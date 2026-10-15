@@ -16,12 +16,10 @@ export const DPI = 203;
 export const PNG_W = 559;
 export const PNG_H = 640;
 
-/** The frame: a chamfered outline inset from the label edge. */
-const FRAME = { inset: 1.6, chamfer: 3.2 };
-/** Content margins inside the frame. */
+/** Content margins. No outer border: thermal printers drift, and a border shows it. */
 const PAD = { l: 4.4, t: 4.2, r: 4.4, b: 4.2 };
 const COL_GAP = 2.6;
-const STROKE = 0.3; // frame, boxes, brackets
+const STROKE = 0.3; // boxes, brackets
 const QR_PAD = 1.6; // quiet zone between the QR and its box
 const PX = LABEL_W / PNG_W; // one bitmap pixel, in mm
 
@@ -53,7 +51,7 @@ export interface LabelLayout {
   text: string;
   /** Dashed divider above the child list, if any. */
   dashedY: number | null;
-  /** Outline path data (frame, QR box, name brackets, info strip), stroked. */
+  /** Outline path data (QR box, name brackets, info strip), stroked. */
   lines: string;
   /** Hazard stripe band: its box and the stripe polygons (clipped to the box). */
   stripes: { x: number; y: number; w: number; h: number; d: string };
@@ -181,15 +179,6 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
     while (s.length > 1 && trackedW(s + '…', size, face, track) > maxW) s = s.slice(0, -1);
     return s.trimEnd() + '…';
   };
-
-  // ---- frame: chamfered outline ----
-  {
-    const i = FRAME.inset;
-    const c = FRAME.chamfer;
-    const W = LABEL_W - i;
-    const H = LABEL_H - i;
-    lines.push(`M${f(i + c)} ${f(i)}H${f(W - c)}L${f(W)} ${f(i + c)}V${f(H - c)}L${f(W - c)} ${f(H)}H${f(i + c)}L${f(i)} ${f(H - c)}V${f(i + c)}Z`);
-  }
 
   // ---- QR (top right, in a rounded box) ----
   const qr = QRCode.create(url, { errorCorrectionLevel: 'M' });
