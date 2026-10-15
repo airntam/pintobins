@@ -42,7 +42,7 @@ describe('label layout', () => {
 
   it('drops details before items when space runs out', () => {
     const long = model({
-      items: Array.from({ length: 5 }, (_, i) => ({
+      items: Array.from({ length: 8 }, (_, i) => ({
         name: `Item number ${i + 1}`,
         details: ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta'],
         pinned: false
@@ -52,7 +52,7 @@ describe('label layout', () => {
     const l = layoutLabel(long, labelEngine, BASE);
     expect(l.mode).toBe('one-line');
     expect(l.hidden).toBe(0);
-    expect(l.shownItems).toHaveLength(5);
+    expect(l.shownItems).toHaveLength(8);
   });
 
   it('with 40 items shows "+ N more" and hides some items', () => {
