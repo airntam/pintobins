@@ -36,6 +36,8 @@ export interface Item {
 export interface LabelModel {
   code: number;
   name: string;
+  /** The place's type name, e.g. "Bin" (shown as "BIN NO."). */
+  type?: string;
   /** Ancestor names, outermost first (already trimmed for display). */
   path: string[];
   items: { name: string; details: string[]; pinned: boolean }[];

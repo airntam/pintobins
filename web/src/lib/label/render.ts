@@ -16,11 +16,17 @@ export const DPI = 203;
 export const PNG_W = 559;
 export const PNG_H = 640;
 
-const PAD = { l: 3.6, t: 3.4, r: 3.4, b: 3.2 };
-const COL_GAP = 3;
+/** The frame: a chamfered outline inset from the label edge. */
+const FRAME = { inset: 1.6, chamfer: 3.2 };
+/** Content margins inside the frame. */
+const PAD = { l: 4.4, t: 4.2, r: 4.4, b: 4.2 };
+const COL_GAP = 2.6;
+const STROKE = 0.3; // frame, boxes, brackets
+const QR_PAD = 1.6; // quiet zone between the QR and its box
 const PX = LABEL_W / PNG_W; // one bitmap pixel, in mm
 
-const SIZE = { name: 4.8, path: 2.3, item: 2.55, more: 2.2, code: 3.3 };
+const SIZE = { name: 5.0, path: 2.1, item: 2.55, more: 2.2, caption: 2.1, bigCode: 18 };
+const CAP = 0.735; // cap height of the Iosevka faces, in em
 const LH = { name: 1.08, text: 1.22 };
 const ITEM_GAP = 0.9;
 const BASELINE = 0.97; // baseline offset from the top of a line box, in em
@@ -45,7 +51,10 @@ export interface LabelLayout {
   text: string;
   /** Dashed divider above the child list, if any. */
   dashedY: number | null;
-  ruleY: number;
+  /** Outline path data (frame, QR box, name brackets, info strip), stroked. */
+  lines: string;
+  /** Hazard stripe band: its box and the stripe polygons (clipped to the box). */
+  stripes: { x: number; y: number; w: number; h: number; d: string };
   /** Width of the contents area (the full label width inside the padding). */
   contentW: number;
   qr: { x: number; y: number; module: number; n: number; d: string };
@@ -148,53 +157,126 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
   const p = new Painter(engine);
   const url = labelUrl(baseUrl, model.code);
 
-  // ---- QR (top right, with the code under it) ----
+  const x0 = PAD.l;
+  const x1 = LABEL_W - PAD.r;
+  const contentW = x1 - x0;
+  const bottom = LABEL_H - PAD.b;
+  const lines: string[] = [];
+
+  /** Letter-spaced text, drawn glyph by glyph. */
+  const trackedW = (t: string, size: number, face: Face, track: number) =>
+    [...t].reduce((a, ch) => a + p.w(ch, size, face), 0) + track * Math.max(0, [...t].length - 1);
+  const tracked = (t: string, x: number, baseline: number, size: number, face: Face, track: number) => {
+    let cx = x;
+    for (const ch of t) {
+      p.text(ch, cx, baseline, size, face);
+      cx += p.w(ch, size, face) + track;
+    }
+  };
+  const fitTracked = (t: string, size: number, face: Face, track: number, maxW: number) => {
+    if (trackedW(t, size, face, track) <= maxW) return t;
+    let s = t;
+    while (s.length > 1 && trackedW(s + '…', size, face, track) > maxW) s = s.slice(0, -1);
+    return s.trimEnd() + '…';
+  };
+
+  // ---- frame: chamfered outline ----
+  {
+    const i = FRAME.inset;
+    const c = FRAME.chamfer;
+    const W = LABEL_W - i;
+    const H = LABEL_H - i;
+    lines.push(`M${f(i + c)} ${f(i)}H${f(W - c)}L${f(W)} ${f(i + c)}V${f(H - c)}L${f(W - c)} ${f(H)}H${f(i + c)}L${f(i)} ${f(H - c)}V${f(i + c)}Z`);
+  }
+
+  // ---- QR (top right, in a rounded box) ----
   const qr = QRCode.create(url, { errorCorrectionLevel: 'M' });
   const n = qr.modules.size;
   const modulePx = Math.max(3, Math.floor(160 / n)); // 20 mm ≈ 160 px; whole pixels keep modules crisp
   const module = modulePx * PX;
   const qrSize = n * module;
-  const codeText = pad4(model.code);
-  const codeW = p.w(codeText, SIZE.code, 'mono');
-  const qrX = snapX(LABEL_W - PAD.r - qrSize);
-  const qrY = snapY(PAD.t);
-  const codeBaseline = qrY + qrSize + 1.8 + SIZE.code * 0.72;
+  const boxW = qrSize + 2 * QR_PAD;
+  const boxX = x1 - boxW;
+  const boxY = PAD.t;
+  const qrX = snapX(boxX + QR_PAD);
+  const qrY = snapY(boxY + QR_PAD);
   const rects: string[] = [];
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
       if (qr.modules.get(r, c)) rects.push(`M${f(qrX + c * module)} ${f(qrY + r * module)}h${f(module)}v${f(module)}h${f(-module)}z`);
     }
   }
-  p.text(codeText, qrX + qrSize / 2 - codeW / 2, codeBaseline, SIZE.code, 'mono');
+  {
+    const r = 1.2;
+    const X = boxX;
+    const Y = boxY;
+    const W = boxW;
+    lines.push(
+      `M${f(X + r)} ${f(Y)}H${f(X + W - r)}Q${f(X + W)} ${f(Y)} ${f(X + W)} ${f(Y + r)}V${f(Y + W - r)}Q${f(X + W)} ${f(Y + W)} ${f(X + W - r)} ${f(Y + W)}` +
+        `H${f(X + r)}Q${f(X)} ${f(Y + W)} ${f(X)} ${f(Y + W - r)}V${f(Y + r)}Q${f(X)} ${f(Y)} ${f(X + r)} ${f(Y)}Z`
+    );
+  }
 
-  // ---- header (name and path beside the QR), then contents across the full width ----
-  const x0 = PAD.l;
-  const headW = qrX - COL_GAP - x0;
-  const contentW = LABEL_W - PAD.l - PAD.r;
-  const bottom = LABEL_H - PAD.b;
-  let y = PAD.t;
+  // ---- the code, as large as the left column allows ----
+  const headW = boxX - COL_GAP - x0;
+  const caption = `${(model.type ?? '').toUpperCase()} NO.`.trim();
+  const capBase = PAD.t + SIZE.caption * CAP;
+  tracked(fitTracked(caption, SIZE.caption, 'regular', 0.45, headW), x0, capBase, SIZE.caption, 'regular', 0.45);
+  const digits = pad4(model.code).slice(1);
+  const bigSize = Math.min(SIZE.bigCode, headW / p.w(digits, 1, 'mono'));
+  const codeBase = capBase + 2.2 + bigSize * CAP;
+  p.text(digits, x0 - bigSize * 0.03, codeBase, bigSize, 'mono');
 
-  const MAX_NAME_LINES = 3;
-  const nameLines = wrap(p, tokenize([{ text: model.name, face: 'display' }]), SIZE.name, headW);
+  // ---- hazard stripes ----
+  let y = Math.max(codeBase, boxY + boxW) + 2.2;
+  const stripes = { x: x0, y, w: contentW, h: 2.2, d: '' };
+  {
+    const sw = 1.1; // stripe width; the gap is the same
+    const parts: string[] = [];
+    for (let sx = x0 - stripes.h; sx < x1; sx += sw * 2) {
+      parts.push(`M${f(sx)} ${f(y + stripes.h)}L${f(sx + stripes.h)} ${f(y)}h${f(sw)}L${f(sx + sw)} ${f(y + stripes.h)}z`);
+    }
+    stripes.d = parts.join('');
+  }
+  y += stripes.h + 2.0;
+
+  // ---- name, between brackets ----
+  const BR = { arm: 1.4, gap: 2.0 };
+  const nameW = contentW - 2 * BR.gap;
+  const MAX_NAME_LINES = 2;
+  const nameLines = wrap(p, tokenize([{ text: model.name, face: 'display' }]), SIZE.name, nameW);
   let shownName = nameLines.slice(0, MAX_NAME_LINES);
   if (nameLines.length > MAX_NAME_LINES) {
     const last = nameLines.slice(MAX_NAME_LINES - 1).flat();
-    shownName = [...nameLines.slice(0, MAX_NAME_LINES - 1), oneLine(p, last, SIZE.name, headW)];
+    shownName = [...nameLines.slice(0, MAX_NAME_LINES - 1), oneLine(p, last, SIZE.name, nameW)];
   }
+  const brTop = y;
+  y += 0.9;
   for (const line of shownName) {
-    paintLine(p, line, x0, y, SIZE.name);
+    paintLine(p, line, x0 + BR.gap, y, SIZE.name);
     y += SIZE.name * LH.name;
   }
-  y += 0.9;
-  const pathText = model.path.join(SEP);
-  if (pathText) {
-    const t = oneLine(p, [{ text: pathText, face: 'regular' }], SIZE.path, headW);
-    paintLine(p, t, x0, y, SIZE.path);
+  const brBot = y + 0.3;
+  lines.push(`M${f(x0 + BR.arm)} ${f(brTop)}H${f(x0)}V${f(brBot)}H${f(x0 + BR.arm)}`);
+  lines.push(`M${f(x1 - BR.arm)} ${f(brTop)}H${f(x1)}V${f(brBot)}H${f(x1 - BR.arm)}`);
+  y = brBot + 1.5;
+
+  // ---- info strip: path on the left, contents count on the right ----
+  const stripH = 4.2;
+  lines.push(`M${f(x0)} ${f(y)}H${f(x1)}V${f(y + stripH)}H${f(x0)}Z`);
+  {
+    const base = y + stripH / 2 + (SIZE.path * CAP) / 2;
+    const k = model.items.length;
+    const count = `${k} ITEM${k === 1 ? '' : 'S'}`;
+    const cw = trackedW(count, SIZE.path, 'regular', 0.3);
+    tracked(count, x1 - 1.4 - cw, base, SIZE.path, 'regular', 0.3);
+    const pathText = model.path.join(SEP).toUpperCase();
+    if (pathText) {
+      const t = fitTracked(pathText, SIZE.path, 'regular', 0.3, contentW - 2.8 - cw - 2.5);
+      tracked(t, x0 + 1.4, base, SIZE.path, 'regular', 0.3);
+    }
   }
-  y += SIZE.path * LH.text + 1.3;
-  y = Math.max(y, codeBaseline + 1.8); // the rule sits below both the header text and the QR block
-  const ruleY = y;
-  y += 0.4 + 1.9;
+  y += stripH + 1.9;
   const contentTop = y;
 
   const entries: Entry[] = [
@@ -333,7 +415,8 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
     shownChildren: entries.filter((e, i) => e.kind === 'child' && !dropped.has(i)).map((e) => e.label),
     text: p.d.join(''),
     dashedY: dashY,
-    ruleY,
+    lines: lines.join(''),
+    stripes,
     contentW,
     qr: { x: qrX, y: qrY, module, n, d: rects.join('') },
     url
@@ -352,14 +435,17 @@ export function renderLabelSvg(model: LabelModel, engine: TextEngine, opts: Rend
     ? `width="${PNG_W}" height="${PNG_H}" preserveAspectRatio="none"`
     : `width="${LABEL_W}mm" height="${LABEL_H}mm"`;
   const x0 = PAD.l;
+  const S = L.stripes;
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" ${size} viewBox="0 0 ${LABEL_W} ${LABEL_H}">`,
+    `<defs><clipPath id="hz"><rect x="${f(S.x)}" y="${f(S.y)}" width="${f(S.w)}" height="${f(S.h)}"/></clipPath></defs>`,
     `<rect width="${LABEL_W}" height="${LABEL_H}" fill="#fff"/>`,
     `<g fill="#000" stroke="none">`,
-    `<rect x="${f(x0)}" y="${f(L.ruleY)}" width="${f(L.contentW)}" height="0.4"/>`,
     `<path d="${L.text}"/>`,
     `<path d="${L.qr.d}" shape-rendering="crispEdges"/>`,
+    `<path d="${S.d}" clip-path="url(#hz)"/>`,
     `</g>`,
+    `<path d="${L.lines}" fill="none" stroke="#000" stroke-width="${STROKE}"/>`,
     L.dashedY !== null
       ? `<line x1="${f(x0)}" y1="${f(L.dashedY)}" x2="${f(x0 + L.contentW)}" y2="${f(L.dashedY)}" stroke="#000" stroke-width="0.3" stroke-dasharray="1.2 0.8"/>`
       : '',

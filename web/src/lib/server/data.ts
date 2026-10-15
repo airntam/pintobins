@@ -125,6 +125,7 @@ export function labelModel(ctx: Ctx, place: Place): LabelModel {
   return {
     code: place.code,
     name: place.name,
+    type: ctx.typeById.get(place.type)?.name,
     path: displayPath(ancestors(ctx, place).map((p) => p.name)),
     items: (ctx.itemsByPlace.get(place.id) ?? []).map((i) => ({
       name: i.name,
