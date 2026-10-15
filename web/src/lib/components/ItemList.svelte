@@ -307,14 +307,16 @@
         {#if editingId === item.id}
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <div class="row editing" onfocusout={rowFocusOut} role="group" aria-label="Edit {item.name}">
+            <label class="field-label" for="item-name-{item.id}">Name</label>
             <input
+              id="item-name-{item.id}"
               class="name-input"
               bind:this={nameInput}
               bind:value={draftName}
               onkeydown={onNameKey}
-              aria-label="Item name"
               placeholder="Item name"
             />
+            <label class="field-label" for="item-details-{item.id}">Details</label>
             <div class="chip-edit">
               {#each chips as c, i}
                 <span class="chip edit-chip"
@@ -323,6 +325,7 @@
                 >
               {/each}
               <input
+                id="item-details-{item.id}"
                 class="chip-input"
                 bind:this={chipInput}
                 bind:value={chipDraft}
@@ -448,8 +451,14 @@
   .pin:hover { color: var(--text-2); }
   .pin.on { color: #7C86E8; }
   .editing { flex-direction: column; gap: 8px; padding: 10px 12px; background: var(--surface-2); }
-  .name-input, .chip-input { border: 0; background: transparent; outline: none; min-width: 0; }
-  .name-input { font-weight: 500; height: 32px; width: 100%; }
+  .field-label { font-size: var(--fs-sm); color: var(--text-3); margin-bottom: -4px; }
+  .chip-input { border: 0; background: transparent; outline: none; min-width: 0; }
+  .name-input {
+    width: 100%; min-width: 0; height: 40px; padding: 0 10px; font-weight: 500; color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--bg); outline: none;
+  }
+  .name-input:hover, .chip-edit:hover { border-color: var(--sep); }
+  .name-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(94, 106, 210, .18); }
   .chip-edit { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 4px 6px; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--bg); min-height: 36px; }
   .chip-edit:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(94, 106, 210, .18); }
   .chip-input { flex: 1 1 120px; height: 28px; font-size: var(--fs-md); }
