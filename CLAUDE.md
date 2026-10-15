@@ -95,8 +95,8 @@ Hooks in `pb_hooks/`:
 ## Label (70 mm wide × 80 mm tall, portrait, pure black on white)
 
 - **Style:** sci-fi equipment tag. A chamfered outline frame; everything else flush inside it.
-- **Header:** a small tracked caption with the type ("BIN NO."), then the code's digits as large as the left column allows (about 13 mm cap height), in Iosevka. On the right, a QR code about 20 mm square holding `PUBLIC_BASE_URL/p/<code>`, in a rounded box with a quiet zone.
-- **Body:** a hazard-stripe band, the name in bold between corner brackets (up to 2 lines), then a boxed info strip with the uppercase tracked path on the left and the item count on the right. Then the contents: each item is a bold name followed by " — details". Child places are listed last, after a dashed rule, as `▸ Name #0043`.
+- **Header:** on the left, a small tracked caption with the type ("BIN NO.") and the item count, the code's digits (about 9.5 mm cap height, Iosevka), and a boxed info strip with the uppercase tracked path. On the right, a QR code about 15 mm square holding `PUBLIC_BASE_URL/p/<code>`, in a rounded box with a quiet zone.
+- **Body:** a hazard-stripe band, the name in bold between corner brackets (up to 2 lines), then the contents (room for 9-10 item lines): each item is a bold name followed by " — details". Child places are listed last, after a dashed rule, as `▸ Name #0043`.
 - **Overflow:** measure the space and drop details first, then items, then end with "+ N more · scan for full list". Pinned items are always kept.
 - **Rendering:** one SVG renderer, `src/lib/label/render.ts`, produces the SVG at mm units. The PNG is that SVG rasterized at 203 dpi (559 × 640 px). The preview, print and downloads all use the same renderer.
 - **Print sheet:** `@page { size: 70mm 80mm; margin: 0 }`, one label per page as an `<img>` of the SVG. It calls `window.print()` automatically. After printing, the user confirms with "Mark as printed", which saves `label_snapshot` and `printed_at`.

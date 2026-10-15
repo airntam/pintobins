@@ -25,10 +25,10 @@ const STROKE = 0.3; // frame, boxes, brackets
 const QR_PAD = 1.6; // quiet zone between the QR and its box
 const PX = LABEL_W / PNG_W; // one bitmap pixel, in mm
 
-const SIZE = { name: 5.0, path: 2.1, item: 2.55, more: 2.2, caption: 2.1, bigCode: 18 };
+const SIZE = { name: 4.8, path: 2.0, item: 2.55, more: 2.2, caption: 2.0, bigCode: 13 };
 const CAP = 0.735; // cap height of the Iosevka faces, in em
 const LH = { name: 1.08, text: 1.22 };
-const ITEM_GAP = 0.9;
+const ITEM_GAP = 0.7;
 const BASELINE = 0.97; // baseline offset from the top of a line box, in em
 
 export type DetailMode = 'full' | 'one-line' | 'none';
@@ -192,7 +192,7 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
   // ---- QR (top right, in a rounded box) ----
   const qr = QRCode.create(url, { errorCorrectionLevel: 'M' });
   const n = qr.modules.size;
-  const modulePx = Math.max(3, Math.floor(160 / n)); // 20 mm ≈ 160 px; whole pixels keep modules crisp
+  const modulePx = Math.max(3, Math.floor(136 / n)); // about 15-17 mm; whole pixels keep modules crisp
   const module = modulePx * PX;
   const qrSize = n * module;
   const boxW = qrSize + 2 * QR_PAD;
@@ -217,28 +217,49 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
     );
   }
 
-  // ---- the code, as large as the left column allows ----
+  // ---- left of the QR: caption and item count, the code, then the info strip ----
   const headW = boxX - COL_GAP - x0;
-  const caption = `${(model.type ?? '').toUpperCase()} NO.`.trim();
+  const boxBottom = boxY + boxW;
   const capBase = PAD.t + SIZE.caption * CAP;
-  tracked(fitTracked(caption, SIZE.caption, 'regular', 0.45, headW), x0, capBase, SIZE.caption, 'regular', 0.45);
+  {
+    const k = model.items.length;
+    const count = `${k} ITEM${k === 1 ? '' : 'S'}`;
+    const cw = trackedW(count, SIZE.caption, 'regular', 0.3);
+    tracked(count, x0 + headW - cw, capBase, SIZE.caption, 'regular', 0.3);
+    const caption = `${(model.type ?? '').toUpperCase()} NO.`.trim();
+    tracked(fitTracked(caption, SIZE.caption, 'regular', 0.45, headW - cw - 2), x0, capBase, SIZE.caption, 'regular', 0.45);
+  }
+  const stripH = 4.0;
+  const stripTop = boxBottom - stripH;
   const digits = pad4(model.code).slice(1);
-  const bigSize = Math.min(SIZE.bigCode, headW / p.w(digits, 1, 'mono'));
-  const codeBase = capBase + 2.2 + bigSize * CAP;
+  const codeTop = capBase + 1.6;
+  const bigSize = Math.min(SIZE.bigCode, headW / p.w(digits, 1, 'mono'), (stripTop - 1.2 - codeTop) / CAP);
+  const codeBase = codeTop + bigSize * CAP;
   p.text(digits, x0 - bigSize * 0.03, codeBase, bigSize, 'mono');
 
-  // ---- hazard stripes ----
-  let y = Math.max(codeBase, boxY + boxW) + 2.2;
-  const stripes = { x: x0, y, w: contentW, h: 2.2, d: '' };
+  // info strip: the path, boxed
+  lines.push(`M${f(x0)} ${f(stripTop)}H${f(x0 + headW)}V${f(boxBottom)}H${f(x0)}Z`);
   {
-    const sw = 1.1; // stripe width; the gap is the same
+    const pathText = model.path.join(SEP).toUpperCase();
+    if (pathText) {
+      const base = stripTop + stripH / 2 + (SIZE.path * CAP) / 2;
+      const t = fitTracked(pathText, SIZE.path, 'regular', 0.2, headW - 2.6);
+      tracked(t, x0 + 1.3, base, SIZE.path, 'regular', 0.2);
+    }
+  }
+
+  // ---- hazard stripes ----
+  let y = boxBottom + 1.8;
+  const stripes = { x: x0, y, w: contentW, h: 1.8, d: '' };
+  {
+    const sw = 1.0; // stripe width; the gap is the same
     const parts: string[] = [];
     for (let sx = x0 - stripes.h; sx < x1; sx += sw * 2) {
       parts.push(`M${f(sx)} ${f(y + stripes.h)}L${f(sx + stripes.h)} ${f(y)}h${f(sw)}L${f(sx + sw)} ${f(y + stripes.h)}z`);
     }
     stripes.d = parts.join('');
   }
-  y += stripes.h + 2.0;
+  y += stripes.h + 1.8;
 
   // ---- name, between brackets ----
   const BR = { arm: 1.4, gap: 2.0 };
@@ -251,32 +272,15 @@ export function layoutLabel(model: LabelModel, engine: TextEngine, baseUrl: stri
     shownName = [...nameLines.slice(0, MAX_NAME_LINES - 1), oneLine(p, last, SIZE.name, nameW)];
   }
   const brTop = y;
-  y += 0.9;
+  y += 0.8;
   for (const line of shownName) {
     paintLine(p, line, x0 + BR.gap, y, SIZE.name);
     y += SIZE.name * LH.name;
   }
-  const brBot = y + 0.3;
+  const brBot = y + 0.2;
   lines.push(`M${f(x0 + BR.arm)} ${f(brTop)}H${f(x0)}V${f(brBot)}H${f(x0 + BR.arm)}`);
   lines.push(`M${f(x1 - BR.arm)} ${f(brTop)}H${f(x1)}V${f(brBot)}H${f(x1 - BR.arm)}`);
-  y = brBot + 1.5;
-
-  // ---- info strip: path on the left, contents count on the right ----
-  const stripH = 4.2;
-  lines.push(`M${f(x0)} ${f(y)}H${f(x1)}V${f(y + stripH)}H${f(x0)}Z`);
-  {
-    const base = y + stripH / 2 + (SIZE.path * CAP) / 2;
-    const k = model.items.length;
-    const count = `${k} ITEM${k === 1 ? '' : 'S'}`;
-    const cw = trackedW(count, SIZE.path, 'regular', 0.3);
-    tracked(count, x1 - 1.4 - cw, base, SIZE.path, 'regular', 0.3);
-    const pathText = model.path.join(SEP).toUpperCase();
-    if (pathText) {
-      const t = fitTracked(pathText, SIZE.path, 'regular', 0.3, contentW - 2.8 - cw - 2.5);
-      tracked(t, x0 + 1.4, base, SIZE.path, 'regular', 0.3);
-    }
-  }
-  y += stripH + 1.9;
+  y = brBot + 2.0;
   const contentTop = y;
 
   const entries: Entry[] = [
