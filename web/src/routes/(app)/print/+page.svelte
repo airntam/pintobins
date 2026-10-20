@@ -1,6 +1,9 @@
 <script lang="ts">
   import Printer from 'lucide-svelte/icons/printer';
   import Download from 'lucide-svelte/icons/download';
+  import EyeOff from 'lucide-svelte/icons/eye-off';
+  import { invalidateAll } from '$app/navigation';
+  import { toast } from '$lib/toast.svelte';
   import TypeTile from '$lib/components/TypeTile.svelte';
   import { pad4 } from '$lib/types';
 
@@ -14,6 +17,36 @@
   function toggleAll() {
     selected = all ? [] : data.queue.map((q) => q.code);
   }
+  async function post(body: unknown) {
+    const res = await fetch('/api/printed', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(out.error ?? 'Something went wrong');
+    return out;
+  }
+  const fail = (e: unknown) => toast(e instanceof Error ? e.message : 'Something went wrong', { error: true });
+
+  /** Keep the current label as is: accept the contents without printing, so the rows leave the queue. */
+  async function skip() {
+    const n = selected.length;
+    try {
+      const { previous } = await post({ codes: selected, skip: true });
+      selected = [];
+      await invalidateAll();
+      toast(`Skipped ${n} label${n === 1 ? '' : 's'}`, {
+        undo: async () => {
+          try {
+            await post({ restore: previous });
+            await invalidateAll();
+          } catch (e) {
+            fail(e);
+          }
+        }
+      });
+    } catch (e) {
+      fail(e);
+    }
+  }
+
   // drop selections for rows that left the queue
   $effect(() => {
     const live = new Set(data.queue.map((q) => q.code));
@@ -34,6 +67,9 @@
     {#if data.queue.length}
       <div class="actions">
         <button type="button" class="btn sm" class:primary={!selected.length} onclick={toggleAll}>{all ? 'Clear selection' : 'Select all'}</button>
+        <button type="button" class="btn sm" disabled={!selected.length} title="Keep the current label and take these off the list without printing" onclick={skip}
+          ><EyeOff size={14} />Skip</button
+        >
         <a class="btn sm" class:disabled={!selected.length} aria-disabled={!selected.length} href={selected.length ? `/api/labels.zip?codes=${codes}` : undefined} download="labels.zip"
           ><Download size={14} />Download zip</a
         >
@@ -86,7 +122,7 @@
   h1 { font-size: var(--fs-2xl); font-weight: 600; letter-spacing: -0.015em; }
   .sub { font-size: var(--fs-md); }
   .actions { display: flex; flex-wrap: wrap; gap: 8px; }
-  .btn.disabled { opacity: .45; pointer-events: none; }
+  .btn.disabled, .btn:disabled { opacity: .45; pointer-events: none; }
   .list { overflow: hidden; }
   .list > li { display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid var(--border); align-items: flex-start; }
   .list > li:last-child { border-bottom: 0; }

@@ -149,7 +149,8 @@ export interface LabelState {
 /** Compare the place's current label text with its last printed snapshot. */
 export function labelState(ctx: Ctx, place: Place): LabelState {
   const lines = labelLines(labelModel(ctx, place));
-  if (!place.printed_at || !place.label_snapshot) {
+  // A skipped label has a snapshot but no printed_at, so only the snapshot decides "new".
+  if (!place.label_snapshot) {
     return { status: 'new', added: lines, removed: [], lines };
   }
   const { added, removed } = diffLines(place.label_snapshot, lines);

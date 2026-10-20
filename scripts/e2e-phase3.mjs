@@ -42,4 +42,15 @@ export async function run() {
 
   await json('POST', '/api/printed', { codes: [screws.code] });
   ok(!(await inQueue(screws.code)), 'printing removes it from the queue');
+
+  // skipping a reprint takes it off the queue without stamping a new print, and undo puts it back
+  const printedAt = (await pbGet(token, `/api/collections/places/records/${screws.id}`)).printed_at;
+  await json('POST', '/api/items', { place: screws.id, name: 'Hex keys' });
+  ok(await inQueue(screws.code), 'another edit puts it back in the queue');
+  const skip = await json('POST', '/api/printed', { codes: [screws.code], skip: true });
+  ok(!(await inQueue(screws.code)), 'skip removes it from the queue');
+  ok((await pbGet(token, `/api/collections/places/records/${screws.id}`)).printed_at === printedAt, 'skip leaves printed_at alone');
+  await json('POST', '/api/printed', { restore: (await skip.json()).previous });
+  ok(await inQueue(screws.code), 'undoing the skip puts it back in the queue');
+  await json('POST', '/api/printed', { codes: [screws.code], skip: true });
 }

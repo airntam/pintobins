@@ -148,6 +148,26 @@
     }
   }
 
+  /** Keep the current label as is: accept the contents without printing. */
+  async function skipLabel() {
+    try {
+      const { previous } = await api('POST', '/api/printed', { codes: [place.code], skip: true });
+      await refresh();
+      toast('Label kept as is', {
+        undo: async () => {
+          try {
+            await api('POST', '/api/printed', { restore: previous });
+            await invalidateAll();
+          } catch (e) {
+            fail(e);
+          }
+        }
+      });
+    } catch (e) {
+      fail(e);
+    }
+  }
+
   const stale = $derived(place.labeled && data.label.status !== 'ok');
 </script>
 
@@ -186,6 +206,7 @@
         <span class="grow"
           >{data.label.status === 'new' ? 'Label not printed yet' : `Label out of date · ${data.label.changes} change${data.label.changes === 1 ? '' : 's'}`}</span
         >
+        <button type="button" class="link" title="Keep the current label and take this off the print queue" onclick={skipLabel}>Skip</button>
         <a href="/print">Review →</a>
       </div>
     {/if}
@@ -323,7 +344,9 @@
     display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--r-lg); border: 1px solid var(--warn-border);
     background: var(--warn-bg); font-size: var(--fs-md); color: var(--warn);
   }
-  .banner a { color: var(--warn); font-weight: 500; min-height: 24px; }
+  .banner a, .banner .link { color: var(--warn); font-weight: 500; min-height: 24px; }
+  .banner .link { background: none; border: 0; padding: 0; font: inherit; font-weight: 500; cursor: pointer; }
+  .banner .link:hover { text-decoration: underline; }
   .grow { flex-grow: 1; }
   .actions { display: flex; gap: 8px; }
   @media (min-width: 900px) { .actions { max-width: 420px; } }
