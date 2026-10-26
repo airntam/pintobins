@@ -6,7 +6,10 @@
   import Settings from 'lucide-svelte/icons/settings';
   import Plus from 'lucide-svelte/icons/plus';
   import ChevronRight from 'lucide-svelte/icons/chevron-right';
+  import ArrowDownAZ from 'lucide-svelte/icons/arrow-down-a-z';
+  import ArrowDown01 from 'lucide-svelte/icons/arrow-down-0-1';
   import TypeIcon from '$lib/components/TypeIcon.svelte';
+  import { pad4 } from '$lib/types';
 
   let { data, children } = $props();
   // Saving forms only works from the address set as PUBLIC_BASE_URL; say so instead of failing silently.
@@ -18,6 +21,38 @@
   const path = $derived(page.url.pathname);
   const currentCode = $derived(path.startsWith('/p/') ? parseInt(path.slice(3), 10) : NaN);
   const typeById = $derived(new Map(data.types.map((t) => [t.id, t])));
+
+  // Sidebar tree sort, by name or by code; remembered per browser.
+  let sortBy = $state<'name' | 'code'>('name');
+  $effect(() => {
+    try {
+      if (localStorage.getItem('treeSort') === 'code') sortBy = 'code';
+    } catch {}
+  });
+  function toggleSort() {
+    sortBy = sortBy === 'name' ? 'code' : 'name';
+    try {
+      localStorage.setItem('treeSort', sortBy);
+    } catch {}
+  }
+  const sorted = $derived.by(() => {
+    const kids = new Map<string, typeof data.tree>();
+    for (const n of data.tree) (kids.get(n.parent) ?? kids.set(n.parent, []).get(n.parent)!).push(n);
+    const cmp =
+      sortBy === 'code'
+        ? (a: (typeof data.tree)[0], b: (typeof data.tree)[0]) => a.code - b.code
+        : (a: (typeof data.tree)[0], b: (typeof data.tree)[0]) =>
+            a.name.localeCompare(b.name, undefined, { numeric: true });
+    const out: typeof data.tree = [];
+    const walk = (parent: string) => {
+      for (const n of (kids.get(parent) ?? []).sort(cmp)) {
+        out.push(n);
+        walk(n.id);
+      }
+    };
+    walk('');
+    return out;
+  });
 
   // Sidebar tree: expand the chain leading to the current place.
   let open = $state<Record<string, boolean>>({});
@@ -33,7 +68,7 @@
     return s;
   });
   const visible = $derived(
-    data.tree.filter((n) => {
+    sorted.filter((n) => {
       let p = n.parent;
       while (p) {
         if (!(open[p] ?? trail.has(p))) return false;
@@ -59,7 +94,17 @@
     </nav>
     <div class="treehead">
       <span class="section-label">Places</span>
-      <a class="addbtn" href="/new" aria-label="New place"><Plus size={14} /></a>
+      <span class="treeacts">
+        <button
+          type="button"
+          class="addbtn"
+          onclick={toggleSort}
+          aria-label={sortBy === 'name' ? 'Sorted by name; sort by number' : 'Sorted by number; sort by name'}
+          title={sortBy === 'name' ? 'Sorted by name' : 'Sorted by number'}
+          >{#if sortBy === 'name'}<ArrowDownAZ size={14} />{:else}<ArrowDown01 size={14} />{/if}</button
+        >
+        <a class="addbtn" href="/new" aria-label="New place"><Plus size={14} /></a>
+      </span>
     </div>
     <ul class="tree">
       {#each visible as n (n.id)}
@@ -73,7 +118,7 @@
             ><span class:rot={open[n.id] ?? trail.has(n.id)}><ChevronRight size={12} /></span></button
           >
           <a href="/p/{n.code}" class:on={n.code === currentCode}
-            ><TypeIcon type={typeById.get(n.type)} size={13} /><span class="nm">{n.name}</span></a
+            ><TypeIcon type={typeById.get(n.type)} size={13} /><span class="nm">{n.name}</span><span class="code mono">{pad4(n.code)}</span></a
           >
         </li>
       {/each}
@@ -169,6 +214,8 @@
     .links a.on { background: var(--surface-hover); color: var(--text); font-weight: 500; }
     .count { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: #fff; font-size: var(--fs-xs); font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
     .treehead { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 0; }
+    .treeacts { display: flex; gap: 2px; }
+    .addbtn { border: 0; padding: 0; background: transparent; cursor: pointer; }
     .addbtn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: var(--r-sm); color: var(--text-3); }
     .addbtn:hover { background: var(--surface-hover); color: var(--text); }
     .tree li { display: flex; align-items: center; }
@@ -176,6 +223,8 @@
     .tree a:hover { background: var(--surface-hover); }
     .tree a.on { background: var(--accent-soft); color: var(--text); }
     .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .code { margin-left: auto; padding-left: 8px; flex-shrink: 0; color: var(--text-4); font-size: var(--fs-xs); }
+    .tree a.on .code { color: var(--text-3); }
     .twist { width: 18px; height: 18px; flex-shrink: 0; border: 0; padding: 0; background: transparent; color: var(--text-3); display: flex; align-items: center; justify-content: center; }
     .twist.hidden { visibility: hidden; }
     .twist .rot { display: inline-flex; transform: rotate(90deg); }
