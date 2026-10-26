@@ -9,6 +9,8 @@
 5. **Polish** - move places and items (searchable picker), type settings, CSV export/import, empty states.
 6. **Deploy** - production compose (named volume, env vars only, healthchecks, `tunnel` profile), Dockerfiles, `.env.example`, `.gitattributes`, README (Windows dev, Portainer, Coolify, Cloudflare Tunnel, backups), GHCR workflow + `docker-compose.ghcr.yml`.
 
+7. **Layout concepts** (2026-10-25) - Browse as a map (recently opened, rooms with what's inside, rollups, out-of-date line), place page with a right rail and a big code, swipe actions on phone item rows, docked Add item field, sidebar filter, Ctrl+Z undo, `/scan` camera page. See DECISIONS.md.
+
 ## Verified
 
 - `npm test`: 15 unit tests pass. `npm run check`: 0 errors.
@@ -16,6 +18,8 @@
 - `docker compose config` validates (base, dev, tunnel profile). `docker compose build` succeeds. The stack comes up healthy on Docker Desktop using only named volumes and env vars (`npm run smoke` against it passes), for both `docker-compose.yml` and the dev override.
 
 ## Not verified
+
+- `/scan` with a real phone camera (the preview pane blocks the camera; typing a code works). Swipe actions were tested with synthetic touch events, not a finger.
 
 - A real print to the Phomemo M260 (no printer here). The label template is 80 × 70 mm; check the first print against the real labels (the spec's open item).
 - Portainer, Coolify and the Cloudflare Tunnel themselves (no access). The compose file is validated and the stack runs locally; the README steps follow each tool's documented flow.

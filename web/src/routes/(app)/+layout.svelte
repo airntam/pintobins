@@ -8,6 +8,9 @@
   import ChevronRight from 'lucide-svelte/icons/chevron-right';
   import ArrowDownAZ from 'lucide-svelte/icons/arrow-down-a-z';
   import ArrowDown01 from 'lucide-svelte/icons/arrow-down-0-1';
+  import ChevronLeft from 'lucide-svelte/icons/chevron-left';
+  import ListFilter from 'lucide-svelte/icons/list-filter';
+  import X from 'lucide-svelte/icons/x';
   import TypeIcon from '$lib/components/TypeIcon.svelte';
   import { pad4 } from '$lib/types';
 
@@ -111,8 +114,26 @@
     }
     return s;
   });
+  // Sidebar filter: matching places plus the chain above them, all expanded.
+  let filter = $state('');
+  const matches = $derived.by(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return null;
+    const keep = new Set<string>();
+    for (const n of data.tree) {
+      const digits = q.replace(/^#?0*/, '');
+      if (!n.name.toLowerCase().includes(q) && !(/^\d+$/.test(digits) && pad4(n.code).includes(digits))) continue;
+      let cur: (typeof data.tree)[0] | undefined = n;
+      while (cur && !keep.has(cur.id)) {
+        keep.add(cur.id);
+        cur = byId.get(cur.parent);
+      }
+    }
+    return keep;
+  });
   const visible = $derived(
     sorted.filter((n) => {
+      if (matches) return matches.has(n.id);
       let p = n.parent;
       while (p) {
         if (!(open[p] ?? trail.has(p))) return false;
@@ -122,12 +143,14 @@
     })
   );
   const nav = (p: string) => (p === '/' ? path === '/' : path.startsWith(p));
+  const wide = $derived(path === '/' || path.startsWith('/p/'));
+  // Phone header on a place page: back to the place it lives in.
+  const back = $derived((page.data as { steps?: { code: number; name: string }[] }).steps?.at(-1));
 </script>
 
 <div class="shell">
   <aside class="sidebar" aria-label="Sidebar" style:--sidebar-w="{sidebarW}px">
     <a class="brand" href="/"><span class="logo mono">#</span>Bins</a>
-    <a class="searchbtn" href="/search"><Search size={14} />Search everything</a>
     <nav class="links" aria-label="Main">
       <a href="/" class:on={nav('/')}><House size={15} />Browse</a>
       <a href="/search" class:on={nav('/search')}><Search size={15} />Search</a>
@@ -150,6 +173,11 @@
         <a class="addbtn" href="/new" aria-label="New place"><Plus size={14} /></a>
       </span>
     </div>
+    <label class="filter">
+      <ListFilter size={13} />
+      <input bind:value={filter} placeholder="Filter places" aria-label="Filter places" autocomplete="off" onkeydown={(e) => e.key === 'Escape' && (filter = '')} />
+      {#if filter}<button type="button" aria-label="Clear filter" onclick={() => (filter = '')}><X size={12} /></button>{/if}
+    </label>
     <ul class="tree">
       {#each visible as n (n.id)}
         <li style:padding-left="{n.depth * 14}px">
@@ -159,12 +187,14 @@
             class:hidden={!hasKids.has(n.id)}
             aria-label="Expand"
             onclick={() => (open[n.id] = !(open[n.id] ?? trail.has(n.id)))}
-            ><span class:rot={open[n.id] ?? trail.has(n.id)}><ChevronRight size={12} /></span></button
+            ><span class:rot={matches ? true : (open[n.id] ?? trail.has(n.id))}><ChevronRight size={12} /></span></button
           >
           <a href="/p/{n.code}" class:on={n.code === currentCode}
             ><TypeIcon type={typeById.get(n.type)} size={13} /><span class="nm">{n.name}</span><span class="code mono">{pad4(n.code)}</span></a
           >
         </li>
+      {:else}
+        {#if matches}<li class="nomatch">No places match</li>{/if}
       {/each}
     </ul>
   </aside>
@@ -188,9 +218,9 @@
   <div class="main">
     {#if path.startsWith('/p/')}
       <header class="topbar">
-        <a href="/search" class="fakesearch"
-          ><Search size={15} /><span>Search everything</span><span class="mono key">/</span></a
-        >
+        <a href={back ? `/p/${back.code}` : '/'} class="back" aria-label="Back to {back?.name ?? 'Browse'}"><ChevronLeft size={20} /></a>
+        <span class="backname">{back?.name ?? 'Browse'}</span>
+        <a href="/search" class="iconlink" aria-label="Search"><Search size={18} /></a>
       </header>
     {/if}
     {#if wrongAddress}
@@ -200,7 +230,7 @@
         here; use that address.
       </p>
     {/if}
-    <div class="content">
+    <div class="content" class:wide>
       {@render children()}
     </div>
   </div>
@@ -220,7 +250,9 @@
     const t = e.target as HTMLElement;
     if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(t.tagName) && !t.isContentEditable) {
       e.preventDefault();
-      location.href = '/search';
+      const field = document.querySelector<HTMLInputElement>('[data-search-input]');
+      if (field) field.focus();
+      else location.href = '/search';
     }
   }}
 />
@@ -231,14 +263,9 @@
   .shell { min-height: 100dvh; display: flex; flex-direction: column; }
   .sidebar, .resizer { display: none; }
   .main { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
-  .topbar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
-  .fakesearch {
-    flex-grow: 1; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 10px;
-    border-radius: var(--r-lg); background: var(--surface-2); border: 1px solid var(--border-strong);
-    color: var(--text-3); font-size: var(--fs-md);
-  }
-  .fakesearch span:nth-child(2) { flex-grow: 1; }
-  .key { font-size: var(--fs-xs); padding: 1px 6px; border: 1px solid #2a2a2f; border-radius: 4px; }
+  .topbar { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+  .back, .iconlink { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--text-2); flex-shrink: 0; }
+  .backname { flex-grow: 1; min-width: 0; font-size: var(--fs-md); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .content { width: 100%; max-width: 720px; margin: 0 auto; flex-grow: 1; }
 
   .bottombar {
@@ -267,10 +294,15 @@
     :global(body.resizing) { cursor: col-resize; user-select: none; }
     .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); padding: 0 6px; }
     .logo { width: 22px; height: 22px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-text); display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-sm); }
-    .searchbtn {
-      display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: var(--r-md);
-      background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--text-3); font-size: var(--fs-md);
+    .filter {
+      display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 4px 0 8px; margin: 0 2px; border-radius: var(--r-md);
+      background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--text-3); font-size: var(--fs-sm);
     }
+    .filter:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(94, 106, 210, .18); }
+    .filter input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; color: var(--text); }
+    .filter input:focus-visible { box-shadow: none; }
+    .filter button { width: 22px; height: 22px; border: 0; border-radius: 4px; background: transparent; color: var(--text-3); display: flex; align-items: center; justify-content: center; }
+    .nomatch { padding: 4px 8px; font-size: var(--fs-sm); color: var(--text-3); }
     .links { display: flex; flex-direction: column; gap: 2px; }
     .links a { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: var(--r-md); color: var(--text-2); font-size: var(--fs-md); }
     .links a:hover { background: var(--surface-hover); color: var(--text); }
@@ -295,5 +327,6 @@
     .topbar { display: none; }
     .bottombar { display: none; }
     .content { max-width: 880px; padding: 8px 24px 48px; }
+    .content.wide { max-width: 1180px; padding: 8px 40px 48px; }
   }
 </style>

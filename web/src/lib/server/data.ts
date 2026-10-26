@@ -190,6 +190,35 @@ export function placesByCodes(ctx: Ctx, codes: string | null): Place[] {
   return out;
 }
 
+/** "Shelf" → "shelves", "Bin" → "bins": good enough for type names. */
+function plural(name: string, n: number): string {
+  const w = name.toLowerCase();
+  if (n === 1) return w;
+  if (/[^f]f$/.test(w)) return w.slice(0, -1) + 'ves';
+  if (/(s|x|ch|sh)$/.test(w)) return w + 'es';
+  if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + 'ies';
+  return w + 's';
+}
+
+/** Everything inside a place, counted by type: "2 shelves · 5 bins · 29 items". */
+export function rollup(ctx: Ctx, place: Place): string {
+  const byType = new Map<string, number>();
+  let items = 0;
+  const walk = (p: Place, depth: number) => {
+    items += ctx.itemsByPlace.get(p.id)?.length ?? 0;
+    for (const c of ctx.childrenOf.get(p.id) ?? []) {
+      byType.set(c.type, (byType.get(c.type) ?? 0) + 1);
+      if (depth < 20) walk(c, depth + 1);
+    }
+  };
+  walk(place, 0);
+  const parts = ctx.types
+    .filter((t) => byType.get(t.id))
+    .map((t) => `${byType.get(t.id)} ${plural(t.name, byType.get(t.id)!)}`);
+  if (items) parts.push(`${items} ${items === 1 ? 'item' : 'items'}`);
+  return parts.join(' · ');
+}
+
 /** Flat, depth-annotated tree for the sidebar and parent pickers. */
 export function flatTree(ctx: Ctx): { place: Place; depth: number }[] {
   const out: { place: Place; depth: number }[] = [];

@@ -10,7 +10,8 @@
   import ArrowRight from 'lucide-svelte/icons/arrow-right';
   import Chips from './Chips.svelte';
   import Photo from './Photo.svelte';
-  import { joinDetails, splitDetails } from '$lib/search';
+  import ListFilter from 'lucide-svelte/icons/list-filter';
+  import { joinDetails, normalize, parseQuickEntry, splitDetails } from '$lib/search';
   import { toast } from '$lib/toast.svelte';
   import type { ClientItem } from '$lib/types';
 
@@ -128,6 +129,58 @@
     (e.target as HTMLElement | null)?.focus();
   }
 
+  // ---- swipe a row left on touch screens to reveal Pin, Move and Delete ----
+  const SWIPE_W = 192; // three 64 px actions
+  let swipedId = $state<string | null>(null);
+  let swipe = $state<{ id: string; x0: number; y0: number; base: number; dx: number; active: boolean } | null>(null);
+  let swallowClick = false;
+
+  function swipeStart(e: PointerEvent, item: ClientItem) {
+    if (e.pointerType !== 'touch') return;
+    swipe = { id: item.id, x0: e.clientX, y0: e.clientY, base: swipedId === item.id ? -SWIPE_W : 0, dx: 0, active: false };
+  }
+  function swipeMove(e: PointerEvent) {
+    if (!swipe) return;
+    const dx = e.clientX - swipe.x0;
+    const dy = e.clientY - swipe.y0;
+    if (!swipe.active) {
+      if (Math.abs(dy) > 10) return (swipe = null); // scrolling, not swiping
+      if (Math.abs(dx) < 10) return;
+      swipe.active = true;
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch {} // the pointer may already be gone
+    }
+    swipe.dx = Math.min(0, Math.max(-SWIPE_W, swipe.base + dx));
+  }
+  function swipeEnd() {
+    if (!swipe) return;
+    if (swipe.active) {
+      swipedId = swipe.dx < -SWIPE_W / 2 ? swipe.id : null;
+      swallowClick = true;
+      setTimeout(() => (swallowClick = false), 0);
+    }
+    swipe = null;
+  }
+  function offset(id: string) {
+    if (swipe?.active && swipe.id === id) return swipe.dx;
+    return swipedId === id ? -SWIPE_W : 0;
+  }
+  function tapRow(item: ClientItem) {
+    if (swallowClick) return;
+    if (swipedId) return (swipedId = null); // the first tap closes an open row
+    startEdit(item);
+  }
+
+  // ---- filter, for long lists ----
+  const FILTER_AT = 9;
+  let filter = $state('');
+  const shown = $derived.by(() => {
+    const q = normalize(filter);
+    if (!q) return items;
+    return items.filter((i) => normalize(`${i.name} ${i.details}`).includes(q));
+  });
+
   const fail = (e: unknown) => toast(e instanceof Error ? e.message : 'Something went wrong', { error: true });
 
   async function patch(item: ClientItem, change: Partial<ClientItem>, message: string) {
@@ -176,7 +229,7 @@
     const change: Partial<ClientItem> = {};
     if (name !== item.name) change.name = name;
     if (details !== item.details) change.details = details;
-    if (Object.keys(change).length) await patch(item, change, 'Item saved');
+    if (Object.keys(change).length) await patch(item, change, `Saved “${name}”`);
   }
 
   function rowFocusOut(e: FocusEvent) {
@@ -218,14 +271,16 @@
   }
 
   async function addItem() {
-    const name = newName.trim();
-    if (!name) return;
+    const typed = newName.trim();
+    // "Washers: M4, M5" adds the item with its details, like quick entry.
+    const parsed = parseQuickEntry(typed)[0];
+    if (!parsed?.name) return;
     newName = '';
     try {
-      const rec = await api('POST', '/api/items', { place: placeId, name });
+      const rec = await api('POST', '/api/items', { place: placeId, name: parsed.name, details: parsed.details });
       items.push({ id: rec.id, name: rec.name, details: rec.details, pinned: rec.pinned, photo: '', sort: rec.sort });
       onchange();
-      toast('Item added', {
+      toast(`Added “${rec.name}”`, {
         undo: async () => {
           try {
             await api('DELETE', `/api/items/${rec.id}`);
@@ -237,13 +292,14 @@
         }
       });
     } catch (e) {
-      newName = name;
+      newName = typed;
       fail(e);
     }
   }
 
   async function remove(item: ClientItem) {
     editingId = null;
+    swipedId = null;
     try {
       await api('DELETE', `/api/items/${item.id}`);
       items = items.filter((i) => i.id !== item.id);
@@ -299,10 +355,18 @@
 <section class="items">
   <div class="head">
     <h2 class="section-label">Items</h2>
-    <span class="count">{items.length}</span>
+    <span class="count">{items.length}{#if items.some((i) => i.pinned)} · {items.filter((i) => i.pinned).length} pinned{/if}</span>
+    {#if items.length >= FILTER_AT}
+      <label class="filter">
+        <ListFilter size={13} />
+        <input bind:value={filter} placeholder="Filter items" aria-label="Filter items" autocomplete="off" />
+      </label>
+    {:else if items.length}
+      <span class="hint touch">Tap to edit · swipe for more</span>
+    {/if}
   </div>
   <ul class="panel list" bind:this={listEl}>
-    {#each items as item (item.id)}
+    {#each shown as item (item.id)}
       <li data-id={item.id} class:dragging={dragId === item.id}>
         {#if editingId === item.id}
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -360,13 +424,39 @@
             </div>
           </div>
         {:else}
+          <div
+            class="swipe-acts"
+            class:sliding={swipe?.active && swipe.id === item.id}
+            hidden={!offset(item.id)}
+            style:transform="translateX({SWIPE_W + offset(item.id)}px)"
+          >
+            <button
+              type="button"
+              class="sa pin-sa"
+              onclick={() => ((swipedId = null), patch(item, { pinned: !item.pinned }, item.pinned ? 'Unpinned' : 'Pinned to label'))}
+              ><Pin size={16} />{item.pinned ? 'Unpin' : 'Pin'}</button
+            >
+            <button type="button" class="sa move-sa" onclick={() => ((swipedId = null), onmove(item))}><ArrowRight size={16} />Move</button>
+            <button type="button" class="sa del-sa" onclick={() => remove(item)}><Trash2 size={16} />Delete</button>
+          </div>
           <div class="row">
-            <button type="button" class="view" onclick={() => startEdit(item)} aria-label="Edit {item.name}">
+            <button
+              type="button"
+              class="view"
+              onclick={() => tapRow(item)}
+              onpointerdown={(e) => swipeStart(e, item)}
+              onpointermove={swipeMove}
+              onpointerup={swipeEnd}
+              onpointercancel={swipeEnd}
+              aria-label="Edit {item.name}"
+            >
               {#if item.photo}
                 <span class="thumb"><Photo collection="items" id={item.id} file={item.photo} thumb="96x96" /></span>
               {/if}
               <span class="txt">
-                <span class="nm">{item.name}</span>
+                <span class="nm"
+                  >{item.name}{#if item.pinned}<span class="pinned" title="Pinned to the label"><Pin size={13} aria-label="Pinned" /></span>{/if}</span
+                >
                 {#if item.details.trim()}
                   <Chips chips={splitDetails(item.details)} />
                 {:else}
@@ -375,7 +465,7 @@
               </span>
               <span class="edit" aria-hidden="true"><Pencil size={14} /></span>
             </button>
-            <button
+            {#if !filter}<button
               type="button"
               class="grip"
               aria-label="Reorder {item.name}. Drag, or use the up and down arrow keys."
@@ -384,10 +474,11 @@
               onpointerup={dragEnd}
               onpointercancel={dragEnd}
               onkeydown={(e) => nudge(e, item)}><GripVertical size={16} /></button
-            >
+            >{/if}
+            <button type="button" class="hov" aria-label="Move {item.name}" title="Move" onclick={() => onmove(item)}><ArrowRight size={14} /></button>
             <button
               type="button"
-              class="pin"
+              class="pin hov"
               class:on={item.pinned}
               aria-pressed={item.pinned}
               aria-label={item.pinned ? 'Unpin from label' : 'Pin to label'}
@@ -398,14 +489,17 @@
         {/if}
       </li>
     {/each}
-    <li class="add">
+    {#if filter && !shown.length}
+      <li class="nomatch">No items match “{filter}”</li>
+    {/if}
+    <li class="add add-dock">
       <label for="new-item" class="sr-only">Add item</label>
-      <Plus size={15} />
+      <span class="plus"><Plus size={15} /></span>
       <input
         id="new-item"
         bind:this={newInput}
         bind:value={newName}
-        placeholder="Add item"
+        placeholder="Add item · name: detail, detail"
         autocomplete="off"
         enterkeyhint="next"
         onkeydown={(e) => {
@@ -416,6 +510,8 @@
         }}
         onblur={addItem}
       />
+      <span class="mono key" aria-hidden="true">Enter</span>
+      <button type="button" class="addgo" aria-label="Add item" onmousedown={(e) => e.preventDefault()} onclick={addItem}><Plus size={18} /></button>
     </li>
   </ul>
   {#if !items.length}
@@ -425,12 +521,33 @@
 
 <style>
   .items { display: flex; flex-direction: column; gap: 8px; }
-  .head { display: flex; align-items: baseline; gap: 8px; }
+  .head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+  .head .touch { margin-left: auto; }
+  .filter {
+    margin-left: auto; display: flex; align-items: center; gap: 6px; width: 200px; height: 32px; padding: 0 8px;
+    border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--surface-2); color: var(--text-3); font-size: var(--fs-sm);
+  }
+  .filter:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(94, 106, 210, .18); }
+  .filter input { flex: 1; min-width: 0; border: 0; background: transparent; outline: none; color: var(--text); }
+  .filter input:focus-visible { box-shadow: none; }
+  .nomatch { padding: 12px; font-size: var(--fs-sm); color: var(--text-3); }
   .count { font-size: var(--fs-sm); color: var(--text-3); }
   .list { overflow: hidden; }
-  li { border-bottom: 1px solid var(--border); }
+  li { position: relative; overflow: hidden; border-bottom: 1px solid var(--border); }
   li:last-child { border-bottom: 0; }
   .row { display: flex; align-items: stretch; }
+  .view { touch-action: pan-y; }
+  /* The actions slide in over the right of the row, so the item's name stays readable */
+  .swipe-acts { position: absolute; z-index: 1; top: 0; right: 0; bottom: 0; width: 192px; display: flex; transition: transform .18s ease; }
+  .swipe-acts.sliding { transition: none; }
+  .swipe-acts[hidden] { display: none; }
+  .sa { width: 64px; border: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: var(--fs-xs); }
+  .pin-sa { background: var(--accent-soft); color: var(--accent-text); }
+  .move-sa { background: var(--border-strong); color: var(--text); }
+  .del-sa { background: #3A1C1C; color: var(--remove); }
+  .pinned { display: inline-flex; vertical-align: -1px; margin-left: 6px; color: var(--accent-text); }
+  .hov { display: none; }
+  .key, .addgo { display: none; }
   .view {
     flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 4px 10px 12px; min-height: 44px;
     border: 0; background: transparent; text-align: left; color: var(--text);
@@ -447,7 +564,7 @@
   .grip:hover { color: var(--text-2); }
   li.dragging { background: var(--surface-hover); }
   li.dragging .grip { cursor: grabbing; color: var(--accent-text); }
-  .pin { width: 44px; border: 0; background: transparent; color: var(--text-4); display: flex; align-items: center; justify-content: center; }
+  .pin { width: 44px; border: 0; background: transparent; color: var(--text-4); align-items: center; justify-content: center; }
   .pin:hover { color: var(--text-2); }
   .pin.on { color: #7C86E8; }
   .editing { flex-direction: column; gap: 8px; padding: 10px 12px; background: var(--surface-2); }
@@ -474,5 +591,28 @@
   .add { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 44px; color: var(--text-3); }
   .add input { flex-grow: 1; height: 100%; border: 0; background: transparent; outline: none; color: var(--text); }
   .add input:focus-visible { box-shadow: none; }
+  .plus { display: flex; }
+
+  /* Phone: the add field docks in the thumb zone, above the tab bar */
+  @media (max-width: 899px) {
+    .head .filter { width: 160px; }
+    li:nth-last-child(2) { border-bottom: 0; }
+    .add-dock {
+      position: fixed; z-index: 15; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom));
+      height: 52px; padding: 0 6px 0 14px; border: 1px solid var(--accent-border); border-radius: 12px; background: var(--surface-2);
+    }
+    .add-dock .plus { display: none; }
+    .add-dock input { font-size: 15px; }
+    .addgo { display: flex; width: 40px; height: 40px; flex-shrink: 0; border: 0; border-radius: 9px; background: var(--accent); color: #fff; align-items: center; justify-content: center; }
+  }
+  /* Desktop: row actions show on hover or focus; swiping is for touch */
+  @media (min-width: 900px) {
+    .swipe-acts, .touch { display: none !important; }
+    .grip, .hov { opacity: 0; }
+    li:hover .grip, li:hover .hov, li:focus-within .grip, li:focus-within .hov, li.dragging .grip { opacity: 1; }
+    .hov { display: flex; width: 36px; border: 0; background: transparent; color: var(--text-3); align-items: center; justify-content: center; }
+    .hov:hover { color: var(--text); }
+    .key { display: inline; font-size: var(--fs-xs); padding: 1px 6px; border: 1px solid #2a2a2f; border-radius: 4px; }
+  }
   .hint { font-size: var(--fs-sm); color: var(--text-3); }
 </style>

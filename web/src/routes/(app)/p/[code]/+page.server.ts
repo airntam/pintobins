@@ -1,5 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
-import { ancestors, labelState, loadCtx } from '$lib/server/data';
+import { ancestors, labelState, loadCtx, rollup } from '$lib/server/data';
+import { pushRecent } from '$lib/server/recent';
 
 /** Cheap stable hash; used to bust the cached label preview when the text changes. */
 const hash = (s: string) => {
@@ -8,7 +9,7 @@ const hash = (s: string) => {
   return (h >>> 0).toString(36);
 };
 
-export async function load({ params, locals, depends }) {
+export async function load({ params, locals, depends, cookies }) {
   depends('app:place');
   const code = parseInt(params.code.replace('#', ''), 10);
   if (!Number.isFinite(code)) error(404, 'Not found');
@@ -18,6 +19,7 @@ export async function load({ params, locals, depends }) {
   // Canonical URL: /p/42, not /p/0042
   if (params.code !== String(code)) redirect(307, `/p/${code}`);
 
+  pushRecent(cookies, code);
   const state = labelState(ctx, place);
   const kids = ctx.childrenOf.get(place.id) ?? [];
   const { label_snapshot: _s, ...slim } = place;
@@ -28,7 +30,7 @@ export async function load({ params, locals, depends }) {
     type: ctx.typeById.get(place.type),
     children: kids.map((c) => ({
       place: (({ label_snapshot, ...rest }) => rest)(c),
-      meta: String((ctx.childrenOf.get(c.id)?.length ?? 0) + (ctx.itemsByPlace.get(c.id)?.length ?? 0) || '')
+      meta: rollup(ctx, c)
     })),
     items: (ctx.itemsByPlace.get(place.id) ?? []).map((i) => ({
       id: i.id,
@@ -41,6 +43,9 @@ export async function load({ params, locals, depends }) {
     label: {
       status: state.status,
       changes: state.added.length + state.removed.length,
+      // A brand-new label lists every line as "added"; only a reprint has a diff worth showing.
+      added: state.status === 'changed' ? state.added : [],
+      removed: state.status === 'changed' ? state.removed : [],
       version: hash(state.lines.join('\n'))
     }
   };
