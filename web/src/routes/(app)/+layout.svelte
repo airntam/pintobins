@@ -22,6 +22,50 @@
   const currentCode = $derived(path.startsWith('/p/') ? parseInt(path.slice(3), 10) : NaN);
   const typeById = $derived(new Map(data.types.map((t) => [t.id, t])));
 
+  // Sidebar width, dragged from its right edge; remembered per browser.
+  const SIDEBAR_MIN = 200;
+  const SIDEBAR_MAX = 520;
+  const SIDEBAR_DEFAULT = 264;
+  let sidebarW = $state(SIDEBAR_DEFAULT);
+  $effect(() => {
+    try {
+      const w = parseInt(localStorage.getItem('sidebarWidth') ?? '', 10);
+      if (w) sidebarW = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, w));
+    } catch {}
+  });
+  function setSidebarW(w: number) {
+    sidebarW = Math.round(Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, w)));
+    try {
+      localStorage.setItem('sidebarWidth', String(sidebarW));
+    } catch {}
+  }
+  function startResize(e: PointerEvent) {
+    e.preventDefault();
+    const handle = e.currentTarget as HTMLElement;
+    handle.setPointerCapture(e.pointerId);
+    const x0 = e.clientX;
+    const w0 = sidebarW;
+    const move = (ev: PointerEvent) => setSidebarW(w0 + ev.clientX - x0);
+    const up = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+      document.body.classList.remove('resizing');
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+    document.body.classList.add('resizing');
+  }
+  function resizeKey(e: KeyboardEvent) {
+    const step = e.shiftKey ? 40 : 10;
+    if (e.key === 'ArrowLeft') setSidebarW(sidebarW - step);
+    else if (e.key === 'ArrowRight') setSidebarW(sidebarW + step);
+    else if (e.key === 'Home') setSidebarW(SIDEBAR_DEFAULT);
+    else return;
+    e.preventDefault();
+  }
+
   // Sidebar tree sort, by name or by code; remembered per browser.
   let sortBy = $state<'name' | 'code'>('name');
   $effect(() => {
@@ -81,7 +125,7 @@
 </script>
 
 <div class="shell">
-  <aside class="sidebar" aria-label="Sidebar">
+  <aside class="sidebar" aria-label="Sidebar" style:--sidebar-w="{sidebarW}px">
     <a class="brand" href="/"><span class="logo mono">#</span>Bins</a>
     <a class="searchbtn" href="/search"><Search size={14} />Search everything</a>
     <nav class="links" aria-label="Main">
@@ -124,6 +168,22 @@
       {/each}
     </ul>
   </aside>
+  <!-- A focusable separator is a resize control (ARIA window splitter pattern). -->
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+  <div
+    class="resizer"
+    role="separator"
+    aria-orientation="vertical"
+    aria-label="Resize sidebar"
+    aria-valuenow={sidebarW}
+    aria-valuemin={SIDEBAR_MIN}
+    aria-valuemax={SIDEBAR_MAX}
+    tabindex="0"
+    title="Drag to resize; double-click to reset"
+    onpointerdown={startResize}
+    ondblclick={() => setSidebarW(SIDEBAR_DEFAULT)}
+    onkeydown={resizeKey}
+  ></div>
 
   <div class="main">
     {#if path.startsWith('/p/')}
@@ -169,7 +229,7 @@
   .wrong-address { margin: 12px 14px 0; padding: 10px 12px; border: 1px solid var(--warn-border); border-radius: var(--r-md); background: var(--warn-bg); color: var(--warn); font-size: var(--fs-md); }
   .wrong-address a { color: var(--warn); text-decoration: underline; }
   .shell { min-height: 100dvh; display: flex; flex-direction: column; }
-  .sidebar { display: none; }
+  .sidebar, .resizer { display: none; }
   .main { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
   .topbar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
   .fakesearch {
@@ -199,9 +259,12 @@
   @media (min-width: 900px) {
     .shell { flex-direction: row; }
     .sidebar {
-      display: flex; flex-direction: column; gap: 12px; width: 264px; flex-shrink: 0; height: 100dvh; position: sticky; top: 0;
+      display: flex; flex-direction: column; gap: 12px; width: var(--sidebar-w, 264px); flex-shrink: 0; height: 100dvh; position: sticky; top: 0;
       padding: 16px 12px; border-right: 1px solid var(--border); background: var(--bg-sunken); overflow-y: auto;
     }
+    .resizer { display: block; flex-shrink: 0; width: 6px; margin: 0 -3px; height: 100dvh; position: sticky; top: 0; cursor: col-resize; z-index: 5; touch-action: none; }
+    .resizer:hover, .resizer:focus-visible, :global(body.resizing) .resizer { background: var(--accent-border); outline: none; }
+    :global(body.resizing) { cursor: col-resize; user-select: none; }
     .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--text); padding: 0 6px; }
     .logo { width: 22px; height: 22px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-text); display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-sm); }
     .searchbtn {

@@ -6,4 +6,5 @@
   const Icon = $derived(iconFor(type?.icon ?? 'box'));
 </script>
 
-<Icon {size} color={type?.color ?? '#8A8F98'} strokeWidth={1.6} aria-hidden="true" />
+<!-- flex-shrink: 0 keeps the icon at its set size next to long names in flex rows -->
+<Icon {size} color={type?.color ?? '#8A8F98'} strokeWidth={1.6} aria-hidden="true" style="flex-shrink: 0" />
